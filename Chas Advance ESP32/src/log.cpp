@@ -25,8 +25,10 @@ void logSensorData(String timestamp, float temperature, float humidity, bool err
     }
 }
 
-// void logStartup()
-// {
-//     // Exempel på startup-loggning
-//     logEvent("SYSTEM", "RESET", "OK");
-// }
+// OBS - Innehåller mockdata
+void logStartup()
+{
+    char buf[32];
+    snprintf(buf, sizeof(buf), "2025-09-03 %02d:%02d:%02d", random(0, 24), random(0, 60), random(0, 60));
+    logEvent(buf, "SYSTEM", "RESET", "OK");
+}
