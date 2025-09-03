@@ -1,16 +1,7 @@
 #include <Arduino.h>
 #include "log.h"
 #include "jsonParser.h"
-
-String receiveMockupData()
-{
-  return R"({
-    "timestamp": "2025-09-03 12:34:56",
-    "temperature": 22.5,
-    "humidity": 55.2,
-    "error": false
-  })";
-}
+#include "mockJson.h"
 
 void setup()
 {
@@ -20,8 +11,7 @@ void setup()
 
 void loop()
 {
-  Serial.println("Starting up...");
-  String json = receiveMockupData();
+  String json = generateMockJson();
   parseJson(json);
 
   delay(2000);
