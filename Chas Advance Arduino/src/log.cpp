@@ -16,7 +16,7 @@ void logSensorData(float temperature, float humidity, bool error)
 {
     if (error)
     {
-        logEvent("ERROR", " No data", "FAIL");
+        logEvent("ERROR", "No data", "FAIL");
     }
     else
     {
