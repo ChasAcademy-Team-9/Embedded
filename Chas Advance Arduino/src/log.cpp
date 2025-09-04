@@ -22,7 +22,7 @@ void logSensorData(float temperature, float humidity, bool error)
     {
         char buffer[50];
         snprintf(buffer, sizeof(buffer), "Temp=%.1f Hum=%.1f", temperature, humidity);
-        logEvent("INFO", +buffer, "OK");
+        logEvent("INFO", String(buffer), "OK");
     }
 }
 
