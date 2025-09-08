@@ -20,7 +20,7 @@ void WifiHandler::init()
   server.on("/data", HTTP_POST, [&]()
             { handlePostRequest(); });
 
-  server.begin();
+  server.begin(80);
   Serial.println("HTTP server started");
 }
 
