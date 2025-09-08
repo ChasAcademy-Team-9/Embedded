@@ -3,6 +3,6 @@
 
 #include <ArduinoJson.h>
 
-String parseJSON(String timestamp, float temperature, float humidity, bool error);
+String parseJSON(float temperature, float humidity, bool error);
 
 #endif

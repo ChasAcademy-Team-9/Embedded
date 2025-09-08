@@ -28,14 +28,13 @@ void loop()
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
   bool error = false;
-  String timestamp = getTimestamp();
 
   if (isnan(humidity) || isnan(temperature))
     error = true;
 
   // generateMockData(temperature, humidity, error);
-  logSensorData(timestamp, temperature, humidity, error);
-  connectToESP(parseJSON(timestamp, temperature, humidity, error));
+  logSensorData(temperature, humidity, error);
+  connectToESP(parseJSON(temperature, humidity, error));
 
   delay(2000);
 }
