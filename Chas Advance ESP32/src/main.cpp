@@ -32,7 +32,7 @@ void setup()
 
   //Define route
   server.on("/data", HTTP_POST, [&]()
-            { HandlePOSTRequest(server); });
+            { HandlePostRequest(server); });
 
   server.begin();
   Serial.println("HTTP server started");

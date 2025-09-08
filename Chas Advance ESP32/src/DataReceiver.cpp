@@ -5,7 +5,7 @@
 /* Function to handle POST requests to /data
     It reads the JSON body, parses it, and logs the sensor data.
 */
-void HandlePOSTRequest(WebServer &server)
+void HandlePostRequest(WebServer &server)
 {
     
   if (server.hasArg("plain")) { // "plain" contains POST body

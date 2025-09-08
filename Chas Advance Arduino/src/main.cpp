@@ -69,7 +69,7 @@ void loop()
   }
 
   // Send HTTP POST request to the esp
-  client.print(String("POST / HTTP/1.1\r\n") +
+  client.print(String("POST /data HTTP/1.1\r\n") +
                "Host: " + host + "\r\n" +
                "Content-Type: application/json\r\n" +
                "Content-Length: " + jsonString.length() + "\r\n" +

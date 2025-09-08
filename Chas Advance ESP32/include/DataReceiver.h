@@ -3,6 +3,6 @@
 #include <Arduino.h>
 #include <WebServer.h>
 
-void HandlePOSTRequest(WebServer &server);
+void HandlePostRequest(WebServer &server);
 
 #endif
