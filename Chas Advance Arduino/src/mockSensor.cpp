@@ -1,5 +1,4 @@
 #include "MockSensor.h"
-#include "log.h"
 
 void generateMockData(float &temp, float &hum, bool &error)
 {
