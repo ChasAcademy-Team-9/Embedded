@@ -4,18 +4,19 @@
 #include "mockJson.h"
 #include <WiFi.h>
 #include <WebServer.h>
-
+#include <ArduinoJson.h>
+#include "DataReceiver.h"
 
 const char *ssid = "Chas Academy";
 const char *password = "EverythingLouderThanEverythingElse";
 
-WiFiServer server(80); // Server listen to port 80
+WebServer server(80); // Server listen to port 80
 
 void setup()
 {
   Serial.begin(115200);
   logStartup();
-  delay(6000);
+  delay(5000);
 
   Serial.println("Starting ESP32...");
   WiFi.begin(ssid, password);
@@ -28,12 +29,18 @@ void setup()
   Serial.println("\nESP32 connected to WiFi");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  //Define route
+  server.on("/data", HTTP_POST, [&]()
+            { HandlePOSTRequest(server); });
+
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 void loop()
 {
-  String json = generateMockJson();
-  parseJson(json);
-  delay(2000);
+  server.handleClient();
+  delay(1000);
 }
 
