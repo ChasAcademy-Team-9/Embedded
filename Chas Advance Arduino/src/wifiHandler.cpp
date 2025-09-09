@@ -9,7 +9,7 @@ void connectToWiFi()
         delay(500);
         Serial.print(".");
     }
-    Serial.println("\nArduino connected to WiFi");
+    Serial.println("\nArduino connected to ESP32 Access Point");
 }
 
 void connectToESP(String jsonString)

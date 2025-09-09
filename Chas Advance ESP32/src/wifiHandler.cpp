@@ -18,7 +18,7 @@ void WifiHandler::init()
   Serial.println(WiFi.localIP());
 
   // Set up Access Point for Arduino to connect to
-  WiFi.softAP(ap_password, ap_password);
+  WiFi.softAP(ap_ssid, ap_password);
   Serial.println("ESP32 AP started");
   Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
@@ -61,20 +61,17 @@ void WifiHandler::handlePostRequest()
     }
     else
     {
-      char timestamp[20];
-      strftime(timestamp, sizeof(timestamp), "%Y::%m::%d %H::%M::%S", &timeinfo);
-      Serial.print("Timestamp: ");
-      Serial.println(timestamp);
+      char buffer[20];
+      strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
+
+      String timestamp = String(buffer);
 
       // Add to JSON
-      doc["received_timestamp"] = timestamp;
+      doc["timestamp"] = timestamp;
     }
 
     String updatedBody;
     serializeJson(doc, updatedBody);
-
-    Serial.println("Augmented JSON:");
-    Serial.println(updatedBody);
 
     // Parse sensor data
     parseJson(updatedBody);
