@@ -2,6 +2,7 @@
 #define MOCKSENSOR_H
 
 #include <Arduino.h>
+#include "log.h"
 
 // Funktioner för mockad sensordata
 void generateMockData(float &temp, float &hum, bool &error);

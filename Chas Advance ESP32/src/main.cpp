@@ -2,17 +2,24 @@
 #include "log.h"
 #include "jsonParser.h"
 #include "mockJson.h"
+#include <WiFi.h>
+#include "wifiHandler.h"
 
+WifiHandler wifiHandler;
 void setup()
 {
   Serial.begin(115200);
   logStartup();
-  delay(1000);
+  delay(3000);
+
+  Serial.println("Starting ESP32...");
+  wifiHandler.init();
 }
 
 void loop()
 {
-  String json = generateMockJson();
-  parseJson(json);
-  delay(2000);
+  wifiHandler.server.handleClient();
+  Serial.print(".");
+  delay(1000);
 }
+
