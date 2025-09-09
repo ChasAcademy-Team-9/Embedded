@@ -2,7 +2,6 @@
 #include <DHT.h>
 #include "MockSensor.h"
 #include "log.h"
-// #include <WiFiClient.h> not needed?
 #include "wifiHandler.h"
 #include "jsonParser.h"
 
