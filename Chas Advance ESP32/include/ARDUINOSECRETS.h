@@ -1,5 +1,5 @@
-#ifndef ARDUNINOSECRETS_H
-#define ARDUNINOSECRETS_H
+#ifndef ARDUINOSECRETS_H
+#define ARDUINOSECRETS_H
 
 const char *ssid = "Chas Academy";
 const char *password = "EverythingLouderThanEverythingElse";
