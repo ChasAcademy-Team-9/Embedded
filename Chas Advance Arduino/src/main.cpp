@@ -19,7 +19,7 @@ void setup()
 
   logStartup();
 
-  connectToWiFi();
+  connectToESPAccessPoint();
 }
 
 void loop()
@@ -33,7 +33,7 @@ void loop()
 
   // generateMockData(temperature, humidity, error);
   logSensorData(temperature, humidity, error);
-  connectToESP(parseJSON(temperature, humidity, error));
+  sendDataToESP32(parseJSON(temperature, humidity, error));
 
   delay(2000);
 }

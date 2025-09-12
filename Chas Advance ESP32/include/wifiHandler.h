@@ -5,26 +5,22 @@
 #include <WebServer.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include "jsonParser.h"
 #include <time.h>
 
-class WifiHandler
-{
-public:
-    WifiHandler(): server(80) {} // Initialize server to listen on port 80;
-    ~WifiHandler() { server.stop(); };
-
-    void init();
-    void handlePostRequest();
-    static String getTimeStamp();
-
-    unsigned long timeSinceDataReceived = 0;
-    WebServer server; // Server listen to port 80
-
-    static const char *ntpServer;
-    static const long gmtOffset_sec;     // e.g. GMT+1
-    static const int daylightOffset_sec; // add DST if needed
+//initialize wifi setup
+void initWifi();
+//Connects the ESP32 to the WiFi network
+void connectToWiFi();
+//Sets up the Access Point for the Arduino to connect to
+void setupAccessPoint();
+//Sets up the HTTP server to handle incoming requests
+void setupHttpServer();
+//Handles incoming POST requests to /data
+void handlePostRequest();
 
 
-};
+extern unsigned long timeSinceDataReceived;
+extern WebServer server; // Server listen to port 80
 
 #endif

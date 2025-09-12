@@ -1,11 +1,7 @@
 #include <Arduino.h>
-#include "log.h"
-#include "jsonParser.h"
 #include "mockJson.h"
-#include <WiFi.h>
 #include "wifiHandler.h"
 
-WifiHandler wifiHandler;
 void setup()
 {
   Serial.begin(115200);
@@ -13,18 +9,14 @@ void setup()
   delay(3000);
 
   Serial.println("Starting ESP32...");
-  wifiHandler.init();
+  initWifi();
 }
 
 void loop()
 {
-  if((millis() - wifiHandler.timeSinceDataReceived) > 5000){
-    //If no data received for 5 seconds, generate warning
-    logEvent(WifiHandler::getTimeStamp(), "ERROR", "No data recevied for 5 seconds", "FAIL");
-    wifiHandler.timeSinceDataReceived = millis(); // Reset timer
-  }
-  
-  wifiHandler.server.handleClient();
+  checkDataTimeout(timeSinceDataReceived);
+
+  server.handleClient();
   delay(1000);
 }
 

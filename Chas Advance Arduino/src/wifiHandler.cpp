@@ -1,7 +1,7 @@
 #include "wifiHandler.h"
 #include "ARDUINOSECRETS.h"
 
-void connectToWiFi()
+void connectToESPAccessPoint()
 {
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED)
@@ -12,7 +12,7 @@ void connectToWiFi()
     Serial.println("\nArduino connected to ESP32 Access Point");
 }
 
-void connectToESP(String jsonString)
+void sendDataToESP32(String jsonString)
 {
     WiFiClient client;
 
