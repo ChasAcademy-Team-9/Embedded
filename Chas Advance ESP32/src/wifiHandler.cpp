@@ -2,6 +2,12 @@
 #include "jsonParser.h"
 #include "ESPSECRETS.h"
 
+// Static member definitions
+const char *WifiHandler::ntpServer = "pool.ntp.org";
+const long WifiHandler::gmtOffset_sec = 3600;
+const int WifiHandler::daylightOffset_sec = 3600;
+
+
 void WifiHandler::init()
 {
   WiFi.mode(WIFI_AP_STA);
@@ -53,22 +59,8 @@ void WifiHandler::handlePostRequest()
     }
 
     // Get current time
-    struct tm timeinfo;
-    if (!getLocalTime(&timeinfo))
-    {
-      Serial.println("Failed to obtain time");
-      doc["received_timestamp"] = "TIME_ERROR";
-    }
-    else
-    {
-      char buffer[20];
-      strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
-
-      String timestamp = String(buffer);
-
-      // Add to JSON
-      doc["timestamp"] = timestamp;
-    }
+    String timeStamp = getTimeStamp();
+    doc["timeStamp"] = timeStamp;
 
     String updatedBody;
     serializeJson(doc, updatedBody);
@@ -77,10 +69,31 @@ void WifiHandler::handlePostRequest()
     parseJson(updatedBody);
 
     server.send(200, "text/plain", "OK");
-    timeSinceDataRecevied = millis();
+    timeSinceDataReceived = millis();
   }
   else
   {
     server.send(400, "text/plain", "No data received");
   }
+}
+
+String WifiHandler::getTimeStamp()
+{
+    String timeStamp = "TIME_ERROR";
+
+  // Get current time
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+      Serial.println("Failed to obtain time");
+      return timeStamp;
+    }
+    else
+    {
+      char buffer[20];
+      strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
+
+      timeStamp = String(buffer);
+    }
+    return timeStamp;
 }

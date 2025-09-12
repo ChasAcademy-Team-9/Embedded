@@ -15,13 +15,14 @@ public:
 
     void init();
     void handlePostRequest();
+    static String getTimeStamp();
 
     unsigned long timeSinceDataReceived = 0;
     WebServer server; // Server listen to port 80
 
-    const char *ntpServer = "pool.ntp.org";
-    const long gmtOffset_sec = 3600;     // e.g. GMT+1
-    const int daylightOffset_sec = 3600; // add DST if needed
+    static const char *ntpServer;
+    static const long gmtOffset_sec;     // e.g. GMT+1
+    static const int daylightOffset_sec; // add DST if needed
 
 
 };

@@ -19,9 +19,8 @@ void setup()
 void loop()
 {
   if((millis() - wifiHandler.timeSinceDataReceived) > 5000){
-    // If no data received for 5 seconds, generate warning
-
-    logEvent("Insert TimeStamp", "ERROR", "No data received for 5 seconds", "FAIL");
+    //If no data received for 5 seconds, generate warning
+    logEvent(WifiHandler::getTimeStamp(), "ERROR", "No data recevied for 5 seconds", "FAIL");
     wifiHandler.timeSinceDataReceived = millis(); // Reset timer
   }
   
