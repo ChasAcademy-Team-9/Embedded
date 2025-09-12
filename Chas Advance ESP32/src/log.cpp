@@ -1,6 +1,5 @@
 #include "log.h"
 
-
 const char *ntpServer = "pool.ntp.org";
 
 void logEvent(String timestamp, String eventType, String description, String status)
@@ -35,6 +34,7 @@ void logStartup()
     snprintf(buf, sizeof(buf), "2025-09-03 %02d:%02d:%02d", random(0, 24), random(0, 60), random(0, 60));
     logEvent(buf, "SYSTEM", "RESET", "OK");
 }
+
 void checkDataTimeout(unsigned long &timeSinceDataReceived)
 {
     if ((millis() - timeSinceDataReceived) > 5000)
@@ -47,21 +47,21 @@ void checkDataTimeout(unsigned long &timeSinceDataReceived)
 
 String getTimeStamp()
 {
-  String timeStamp = "TIME_ERROR";
+    String timeStamp = "TIME_ERROR";
 
-  // Get current time
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
-  {
-    Serial.println("Failed to obtain time");
+    // Get current time
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return timeStamp;
+    }
+    else
+    {
+        char buffer[20];
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
+
+        timeStamp = String(buffer);
+    }
     return timeStamp;
-  }
-  else
-  {
-    char buffer[20];
-    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
-
-    timeStamp = String(buffer);
-  }
-  return timeStamp;
 }

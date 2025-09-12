@@ -13,6 +13,7 @@ void initWifi()
   // Set up NTP time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
+
 void connectToWiFi()
 {
   WiFi.mode(WIFI_AP_STA);
@@ -28,6 +29,7 @@ void connectToWiFi()
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 }
+
 void setupAccessPoint()
 {
   // Set up Access Point for Arduino to connect to
@@ -36,6 +38,7 @@ void setupAccessPoint()
   Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
 }
+
 void setupHttpServer()
 {
   // Define route
@@ -66,7 +69,7 @@ void handlePostRequest()
     }
 
     String timeStamp = getTimeStamp();
-    doc["timeStamp"] = timeStamp;
+    doc["timestamp"] = timeStamp;
 
     String updatedBody;
     serializeJson(doc, updatedBody);
@@ -82,5 +85,3 @@ void handlePostRequest()
     server.send(400, "text/plain", "No data received");
   }
 }
-
-
