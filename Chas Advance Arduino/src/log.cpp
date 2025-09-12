@@ -2,10 +2,7 @@
 
 void logEvent(String eventType, String description, String status)
 {
-    Serial.print(getTimestamp());
-    Serial.print(" ");
     Serial.print(eventType);
-
     Serial.print(" ");
     Serial.print(description);
     Serial.print(" ");
@@ -22,7 +19,7 @@ void logSensorData(float temperature, float humidity, bool error)
     {
         char buffer[50];
         snprintf(buffer, sizeof(buffer), "Temp=%.1f Hum=%.1f", temperature, humidity);
-        logEvent("INFO", String(buffer), "OK");
+        logEvent("INFO", buffer, "OK");
     }
 }
 

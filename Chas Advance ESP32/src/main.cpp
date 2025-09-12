@@ -1,18 +1,22 @@
 #include <Arduino.h>
-#include "log.h"
-#include "jsonParser.h"
 #include "mockJson.h"
+#include "wifiHandler.h"
 
 void setup()
 {
   Serial.begin(115200);
   logStartup();
-  delay(1000);
+  delay(3000);
+
+  Serial.println("Starting ESP32...");
+  initWifi();
 }
 
 void loop()
 {
-  String json = generateMockJson();
-  parseJson(json);
-  delay(2000);
+  checkDataTimeout(timeSinceDataReceived);
+
+  server.handleClient();
+  delay(1000);
 }
+
