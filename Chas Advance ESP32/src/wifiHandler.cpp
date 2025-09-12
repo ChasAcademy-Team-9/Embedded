@@ -1,6 +1,6 @@
 #include "wifiHandler.h"
 #include "jsonParser.h"
-#include "ARDUINOSECRETS.h"
+#include "ESPSECRETS.h"
 
 void WifiHandler::init()
 {
