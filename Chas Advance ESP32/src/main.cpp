@@ -18,11 +18,11 @@ void setup()
 
 void loop()
 {
-  if((millis() - wifiHandler.timeSinceDataRecevied) > 5000){
+  if((millis() - wifiHandler.timeSinceDataReceived) > 5000){
     // If no data received for 5 seconds, generate warning
 
-    logEvent("Insert TimeStamp", "ERROR", "No data recevied for 5 seconds", "FAIL");
-    wifiHandler.timeSinceDataRecevied = millis(); // Reset timer
+    logEvent("Insert TimeStamp", "ERROR", "No data received for 5 seconds", "FAIL");
+    wifiHandler.timeSinceDataReceived = millis(); // Reset timer
   }
   
   wifiHandler.server.handleClient();
