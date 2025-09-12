@@ -16,7 +16,7 @@ public:
     void init();
     void handlePostRequest();
 
-    unsigned long timeSinceDataRecevied = 0;
+    unsigned long timeSinceDataReceived = 0;
     WebServer server; // Server listen to port 80
 
     const char *ntpServer = "pool.ntp.org";
