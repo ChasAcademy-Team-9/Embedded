@@ -1,11 +1,7 @@
 #include <Arduino.h>
-#include "log.h"
-#include "jsonParser.h"
 #include "mockJson.h"
-#include <WiFi.h>
 #include "wifiHandler.h"
 
-WifiHandler wifiHandler;
 void setup()
 {
   Serial.begin(115200);
@@ -13,13 +9,14 @@ void setup()
   delay(3000);
 
   Serial.println("Starting ESP32...");
-  wifiHandler.init();
+  initWifi();
 }
 
 void loop()
 {
-  wifiHandler.server.handleClient();
-  Serial.print(".");
+  checkDataTimeout(timeSinceDataReceived);
+
+  server.handleClient();
   delay(1000);
 }
 

@@ -4,7 +4,7 @@
 #include <WiFiS3.h>
 #include <ArduinoJson.h>
 
-void connectToWiFi();
-void connectToESP(String jsonString);
+void connectToESPAccessPoint();
+void sendDataToESP32(String jsonString);
 
 #endif // WIFIHANDLER_H
