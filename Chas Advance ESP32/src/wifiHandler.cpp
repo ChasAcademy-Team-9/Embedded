@@ -68,45 +68,13 @@ void handlePostRequest()
       return;
     }
 
-    //   String timeStamp = getTimeStamp();
-    //   doc["timestamp"] = timeStamp;
-
-    //   String updatedBody;
-    //   serializeJson(doc, updatedBody);
-
-    //   // Parse sensor data
-    //   parseJson(updatedBody);
-
-    //   server.send(200, "text/plain", "OK");
-    //   timeSinceDataReceived = millis();
-    // }
-    // else
-    // {
-    //   server.send(400, "text/plain", "No data received");
-    // }
-
-    // Kontrollera att det är en array
     if (!doc.is<JsonArray>())
     {
       server.send(400, "text/plain", "Expected JSON array");
       return;
     }
 
-    JsonArray arr = doc.as<JsonArray>();
-    String timeStamp = getTimeStamp();
-
-    // Loopa igenom varje objekt i arrayen
-    for (JsonObject obj : arr)
-    {
-      obj["timestamp"] = timeStamp;
-
-      String updatedBody;
-      serializeJson(obj, updatedBody);
-
-      // Parse sensor data för varje objekt
-      parseJson(updatedBody);
-    }
-
+    parseJsonArray(doc.as<JsonArray>(), getTimeStamp());
     server.send(200, "text/plain", "OK");
     timeSinceDataReceived = millis();
   }
