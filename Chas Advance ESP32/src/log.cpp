@@ -13,7 +13,6 @@ void logEvent(String timestamp, String eventType, String description, String sta
     Serial.print(" ");
     Serial.println(status);
     logger.log(timestamp + " " + eventType + " " + description + " " + status);
-
 }
 
 void logSensorData(String timestamp, float temperature, float humidity, bool error)
@@ -44,10 +43,10 @@ void logStartup()
 
 void checkDataTimeout(unsigned long &timeSinceDataReceived)
 {
-    if ((millis() - timeSinceDataReceived) > 10000)
+    if ((millis() - timeSinceDataReceived) > dataReceivedThreshold)
     {
-        // If no data received for 5 seconds, generate warning
-        logEvent(getTimeStamp(), "ERROR", "No data recevied for 10 seconds", "FAIL");
+        // Generate warning if no data received for the configured threshold
+        logEvent(getTimeStamp(), "ERROR", "No data received for " + String(dataReceivedThreshold / 1000) + " seconds", "FAIL");
         timeSinceDataReceived = millis(); // Reset timer
     }
 }

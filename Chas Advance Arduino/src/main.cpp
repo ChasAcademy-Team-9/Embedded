@@ -3,12 +3,17 @@
 #include "log.h"
 #include "wifiHandler.h"
 #include "jsonParser.h"
+#include <vector>
+#include "SensorData.h"
+#include "batchHandler.h"
 
 #define DHTPIN 8
 #define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
+
+std::vector<SensorData> batchBuffer;
 
 void setup()
 {
@@ -39,7 +44,8 @@ void loop()
     error = true;
 
   logSensorData(temperature, humidity, error);
-  sendDataToESP32(parseJSON(temperature, humidity, error));
+  SensorData data = {temperature, humidity, error};
+  batchSensorReadings(data);
 
   delay(2000);
 }
