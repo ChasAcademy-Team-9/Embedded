@@ -32,13 +32,8 @@ void logSensorData(String timestamp, float temperature, float humidity, bool err
 // OBS - Innehåller mockdata
 void logStartup()
 {
-    char buf[32];
-    //convert getTimeStamp() to char array
-    String ts = getTimeStamp();
-    const char* cstr = ts.c_str();
-
-    snprintf(buf, sizeof(buf), cstr, random(0, 24), random(0, 60), random(0, 60));
-    logEvent(buf, "SYSTEM", "RESET", "OK");
+    String timeStamp = getTimeStamp();
+    logEvent(timeStamp, "SYSTEM", "RESET", "OK");
 }
 
 void checkDataTimeout(unsigned long &timeSinceDataReceived)
