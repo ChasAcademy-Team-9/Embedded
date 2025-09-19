@@ -37,10 +37,10 @@ void logStartup()
 
 void checkDataTimeout(unsigned long &timeSinceDataReceived)
 {
-    if ((millis() - timeSinceDataReceived) > dataReceivedThreashold)
+    if ((millis() - timeSinceDataReceived) > dataReceivedThreshold)
     {
-        // Generate warning if no data received for the configured threshold
-        logEvent(getTimeStamp(), "ERROR", "No data received for " + String(dataReceivedThreashold / 1000) + " seconds", "FAIL");
+        // Generate warning if no data recived for the configured threshold
+        logEvent(getTimeStamp(), "ERROR", "No data recived for " + String(dataReceivedThreshold / 1000) + " seconds", "FAIL");
         timeSinceDataReceived = millis(); // Reset timer
     }
 }
