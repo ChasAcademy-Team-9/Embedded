@@ -14,11 +14,18 @@ void connectToESPAccessPoint()
 
 void sendDataToESP32(String jsonString)
 {
+
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.println("WiFi not connected, reconnecting...");
+        connectToESPAccessPoint();
+    }
+
     WiFiClient client;
 
     if (!client.connect(host, port))
     {
-        Serial.println("Connection failed");
+        Serial.println("Connection to ESP32 failed");
         delay(2000);
         return;
     }
