@@ -1,5 +1,7 @@
 #include "log.h"
 
+extern Logger logger;
+
 void logEvent(String eventType, String description, String status)
 {
     Serial.print(eventType);
@@ -7,6 +9,8 @@ void logEvent(String eventType, String description, String status)
     Serial.print(description);
     Serial.print(" ");
     Serial.println(status);
+    logger.log(eventType + " " + description + " " + status);
+
 }
 
 void logSensorData(float temperature, float humidity, bool error)

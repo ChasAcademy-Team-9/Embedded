@@ -1,6 +1,7 @@
 #include "log.h"
 
 const char *ntpServer = "pool.ntp.org";
+extern Logger logger;
 
 void logEvent(String timestamp, String eventType, String description, String status)
 {
@@ -11,6 +12,7 @@ void logEvent(String timestamp, String eventType, String description, String sta
     Serial.print(description);
     Serial.print(" ");
     Serial.println(status);
+    logger.log(timestamp + " " + eventType + " " + description + " " + status);
 }
 
 void logSensorData(String timestamp, float temperature, float humidity, bool error)
@@ -30,9 +32,8 @@ void logSensorData(String timestamp, float temperature, float humidity, bool err
 // OBS - Innehåller mockdata
 void logStartup()
 {
-    char buf[32];
-    snprintf(buf, sizeof(buf), "2025-09-03 %02d:%02d:%02d", random(0, 24), random(0, 60), random(0, 60));
-    logEvent(buf, "SYSTEM", "RESET", "OK");
+    String timeStamp = getTimeStamp();
+    logEvent(timeStamp, "SYSTEM", "RESET", "OK");
 }
 
 void checkDataTimeout(unsigned long &timeSinceDataReceived)
