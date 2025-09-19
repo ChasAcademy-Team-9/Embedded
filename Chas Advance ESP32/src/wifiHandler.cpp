@@ -57,7 +57,7 @@ void handlePostRequest()
   { // "plain" contains POST body
     String body = server.arg("plain");
 
-    StaticJsonDocument<250> doc;
+    StaticJsonDocument<2048> doc;
     DeserializationError error = deserializeJson(doc, body);
 
     if (error)
@@ -68,15 +68,13 @@ void handlePostRequest()
       return;
     }
 
-    String timeStamp = getTimeStamp();
-    doc["timestamp"] = timeStamp;
+    if (!doc.is<JsonArray>())
+    {
+      server.send(400, "text/plain", "Expected JSON array");
+      return;
+    }
 
-    String updatedBody;
-    serializeJson(doc, updatedBody);
-
-    // Parse sensor data
-    parseJson(updatedBody);
-
+    parseJsonArray(doc.as<JsonArray>(), getTimeStamp());
     server.send(200, "text/plain", "OK");
     timeSinceDataReceived = millis();
   }
