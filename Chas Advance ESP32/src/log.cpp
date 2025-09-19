@@ -1,6 +1,7 @@
 #include "log.h"
 
 const char *ntpServer = "pool.ntp.org";
+extern Logger logger;
 
 void logEvent(String timestamp, String eventType, String description, String status)
 {
@@ -11,6 +12,8 @@ void logEvent(String timestamp, String eventType, String description, String sta
     Serial.print(description);
     Serial.print(" ");
     Serial.println(status);
+    logger.log(timestamp + " " + eventType + " " + description + " " + status);
+
 }
 
 void logSensorData(String timestamp, float temperature, float humidity, bool error)
@@ -31,16 +34,20 @@ void logSensorData(String timestamp, float temperature, float humidity, bool err
 void logStartup()
 {
     char buf[32];
-    snprintf(buf, sizeof(buf), "2025-09-03 %02d:%02d:%02d", random(0, 24), random(0, 60), random(0, 60));
+    //convert getTimeStamp() to char array
+    String ts = getTimeStamp();
+    const char* cstr = ts.c_str();
+
+    snprintf(buf, sizeof(buf), cstr, random(0, 24), random(0, 60), random(0, 60));
     logEvent(buf, "SYSTEM", "RESET", "OK");
 }
 
 void checkDataTimeout(unsigned long &timeSinceDataReceived)
 {
-    if ((millis() - timeSinceDataReceived) > 5000)
+    if ((millis() - timeSinceDataReceived) > 10000)
     {
         // If no data received for 5 seconds, generate warning
-        logEvent(getTimeStamp(), "ERROR", "No data recevied for 5 seconds", "FAIL");
+        logEvent(getTimeStamp(), "ERROR", "No data recevied for 10 seconds", "FAIL");
         timeSinceDataReceived = millis(); // Reset timer
     }
 }

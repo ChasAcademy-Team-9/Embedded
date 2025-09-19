@@ -2,13 +2,21 @@
 #include "mockJson.h"
 #include "wifiHandler.h"
 
+Logger logger;
+
 void setup()
 {
   Serial.begin(115200);
-  logStartup();
   delay(3000);
-
   Serial.println("Starting ESP32...");
+
+  //Initialize logger
+  logger.begin();
+  logStartup();
+
+  // Print all previous log entries
+  logger.printAll();
+
   initWifi();
 }
 

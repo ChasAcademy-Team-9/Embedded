@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <DHT.h>
 #include "MockSensor.h"
 #include "log.h"
@@ -9,16 +8,24 @@
 #define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);
+Logger logger;
 
 void setup()
 {
   Serial.begin(115200);
-  // randomSeed(analogRead(0));
   dht.begin();
-  delay(4000);
-
+  delay(3000);
+  
+  Serial.println("Starting Arduino...");
+  #ifdef ARDUINO_UNOR4_WIFI
+  Serial.println("UNO R4 WiFi detected");
+  #endif
+ //Initialize logger
+  logger.begin();
   logStartup();
 
+  // Print all previous log entries
+  logger.printAll();
   connectToESPAccessPoint();
 }
 
@@ -31,7 +38,6 @@ void loop()
   if (isnan(humidity) || isnan(temperature))
     error = true;
 
-  // generateMockData(temperature, humidity, error);
   logSensorData(temperature, humidity, error);
   sendDataToESP32(parseJSON(temperature, humidity, error));
 

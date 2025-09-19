@@ -1,6 +1,6 @@
 #ifndef LOG_H
 #define LOG_H
-#include <Arduino.h>
+#include "espLogger.h"
 
 
 extern const char *ntpServer;
