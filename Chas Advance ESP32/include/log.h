@@ -5,7 +5,7 @@
 extern const char *ntpServer;
 const long gmtOffset_sec = 3600;
 const int daylightOffset_sec = 3600;
-const int dataReceivedThreashold = 70000; // 70 seconds
+const int dataReceivedThreshold = 70000; // 70 seconds
 
 void logEvent(String timestamp, String eventType, String description, String status);
 void logSensorData(String timestamp, float temperature, float humidity, bool error);
