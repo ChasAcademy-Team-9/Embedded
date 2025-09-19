@@ -28,7 +28,6 @@ public:
 
 private:
     void load();
-    void save();
     void saveLastEntry();
     void clearAll();
 
