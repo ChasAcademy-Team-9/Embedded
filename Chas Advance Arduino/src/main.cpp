@@ -6,6 +6,7 @@
 #include "jsonParser.h"
 #include <vector>
 #include "SensorData.h"
+#include "batchHandler.h"
 
 #define DHTPIN 8
 #define DHTTYPE DHT11
@@ -38,21 +39,8 @@ void loop()
 
   // generateMockData(temperature, humidity, error);
   logSensorData(temperature, humidity, error);
-  // sendDataToESP32(parseJSON(temperature, humidity, error));
-
   SensorData data = {temperature, humidity, error};
-  batchBuffer.push_back(data);
-
-  if (batchStartTime == 0)
-    batchStartTime = millis();
-
-  if (millis() - batchStartTime >= 30000)
-  {
-    String batchJson = createBatchJson(batchBuffer);
-    sendDataToESP32(batchJson);
-    batchBuffer.clear();
-    batchStartTime = millis();
-  }
+  batchSensorReadings(data);
 
   delay(2000);
 }
