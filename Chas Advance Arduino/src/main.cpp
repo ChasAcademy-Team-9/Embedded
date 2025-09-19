@@ -20,11 +20,8 @@ void setup()
   Serial.begin(115200);
   dht.begin();
   delay(3000);
-  
   Serial.println("Starting Arduino...");
-  #ifdef ARDUINO_UNOR4_WIFI
-  Serial.println("UNO R4 WiFi detected");
-  #endif
+  
  //Initialize logger
   logger.begin();
   logStartup();
