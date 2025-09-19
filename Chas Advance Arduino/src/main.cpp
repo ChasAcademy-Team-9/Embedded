@@ -14,7 +14,6 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 std::vector<SensorData> batchBuffer;
-unsigned long batchStartTime = 0;
 
 void setup()
 {
