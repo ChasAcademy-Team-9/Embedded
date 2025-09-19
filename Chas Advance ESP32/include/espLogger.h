@@ -6,7 +6,7 @@
 // Max number of log entries
 #define LOGGER_MAX_ENTRIES 20
 // Max length of each log message
-#define LOGGER_MSG_LENGTH 60
+#define LOGGER_MSG_LENGTH 100
 
 class Logger {
 public:
