@@ -21,14 +21,13 @@ void setup()
   dht.begin();
   delay(3000);
   Serial.println("Starting Arduino...");
-  
- //Initialize logger
+
+  // Initialize logger
   logger.begin();
   logStartup();
 
   // Print all previous log entries
   logger.printAll();
-  connectToESPAccessPoint();
 }
 
 void loop()
@@ -36,6 +35,8 @@ void loop()
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
   bool error = false;
+
+  connectToESPAccessPointAsync();
 
   if (isnan(humidity) || isnan(temperature))
     error = true;

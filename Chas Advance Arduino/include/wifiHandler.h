@@ -4,7 +4,10 @@
 #include <WiFiS3.h>
 #include <ArduinoJson.h>
 
-void connectToESPAccessPoint();
+extern bool wifiConnecting;
+extern unsigned long wifiConnectStart;
+
+void connectToESPAccessPointAsync();
 void sendDataToESP32(String jsonString);
 void updateLogger();
 
