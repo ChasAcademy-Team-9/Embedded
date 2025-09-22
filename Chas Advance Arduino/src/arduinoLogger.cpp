@@ -1,9 +1,11 @@
 #include "arduinoLogger.h"
 #include <EEPROM.h>
+#include "batchHandler.h"
 
 // Initialize the logger
 void Logger::begin()
 {
+    loggerActive = false;
     Serial.println("Logger init for UNO R4 WiFi");
 
     EEPROM.begin();
@@ -15,6 +17,7 @@ void Logger::begin()
 // Add a new log entry
 void Logger::log(const String &msg)
 {
+    Serial.println("Logging on arduino: " + msg);
     // Copy the string safely into the fixed-size buffer for the current head slot
     // Truncates if msg is longer than LOGGER_MSG_LENGTH - 1 to avoid overflow
     msg.substring(0, LOGGER_MSG_LENGTH - 1).toCharArray(buffer[head], LOGGER_MSG_LENGTH);
@@ -128,4 +131,46 @@ void Logger::saveEntry(size_t index)
         // Only write bytes that have changed to reduce flash wear
         EEPROM.update(addr + j, buffer[index][j]);
     }
+}
+
+void Logger::update(bool wifiConnected)
+{
+    std::vector<SensorData> &batch = getBatchBuffer();
+    if (batch.empty())
+    {
+        return; // No data to log
+    }
+
+    if (!wifiConnected && !loggerActive)
+    {
+        // Start logging
+        loggerActive = true;
+        SensorData medianData = calculateMedian(batch);
+        logMedian(medianData);
+        timeSinceLog = millis();
+    }
+    else if (!wifiConnected && loggerActive)
+    {
+        // Continue logging if 1 minute has passed
+        if (millis() - timeSinceLog >= 60000)
+        {
+            SensorData medianData = calculateMedian(batch);
+            logMedian(medianData);
+            timeSinceLog = millis();
+        }
+    }
+    else if (wifiConnected && loggerActive)
+    {
+        // Log once and then stop logging
+        SensorData medianData = calculateMedian(batch);
+        logMedian(medianData);
+        loggerActive = false;
+    }
+}
+
+void Logger::logMedian(const SensorData &medianData)
+{
+    log("t:" + String(medianData.temperature) +
+        " h:" + String(medianData.humidity) +
+        (medianData.error ? " ERR" : ""));
 }

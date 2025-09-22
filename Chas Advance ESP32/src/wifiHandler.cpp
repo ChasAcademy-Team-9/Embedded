@@ -1,8 +1,10 @@
 #include "wifiHandler.h"
 #include "ESPSECRETS.h"
+#include "espLogger.h"
 
 unsigned long timeSinceDataReceived = 0;
 WebServer server;
+extern Logger logger;
 
 void initWifi()
 {
@@ -77,6 +79,11 @@ void handlePostRequest()
     parseJsonArray(doc.as<JsonArray>(), getTimeStamp());
     server.send(200, "text/plain", "OK");
     timeSinceDataReceived = millis();
+
+    // Data received from sensor, check API connection status and update logger
+    bool connected = (WiFi.status() == WL_CONNECTED); // Placeholder for actual server connection status
+    connected = random(0, 2); // Mock connection status for testing
+    logger.update(connected, doc.as<JsonArray>());
   }
   else
   {

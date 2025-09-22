@@ -40,6 +40,7 @@ void loop()
   if (isnan(humidity) || isnan(temperature))
     error = true;
 
+  updateLogger();
   logSensorData(temperature, humidity, error);
   SensorData data = {temperature, humidity, error};
   batchSensorReadings(data);

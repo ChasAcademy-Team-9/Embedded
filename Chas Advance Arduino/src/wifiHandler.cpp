@@ -1,5 +1,8 @@
 #include "wifiHandler.h"
+#include "arduinoLogger.h"
 #include "ARDUINOSECRETS.h"
+
+extern Logger logger;
 
 void connectToESPAccessPoint()
 {
@@ -39,4 +42,10 @@ void sendDataToESP32(String jsonString)
                  jsonString);
 
     client.stop();
+}
+
+void updateLogger()
+{
+    bool connected = (WiFi.status() != WL_CONNECTED);
+    logger.update(connected);
 }

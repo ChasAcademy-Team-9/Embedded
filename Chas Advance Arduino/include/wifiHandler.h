@@ -6,5 +6,6 @@
 
 void connectToESPAccessPoint();
 void sendDataToESP32(String jsonString);
+void updateLogger();
 
 #endif // WIFIHANDLER_H

@@ -1,8 +1,12 @@
 #ifndef BATCHHANDLER_H
 #define BATCHHANDLER_H
 
-#include "SensorData.h"
+#include "sensorData.h"
+#include <vector>
 
 void batchSensorReadings(const SensorData &data);
+SensorData calculateMedian(std::vector<SensorData>& buffer);
+std::vector<SensorData>& getBatchBuffer();
+
 
 #endif

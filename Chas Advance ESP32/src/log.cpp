@@ -1,7 +1,6 @@
 #include "log.h"
 
 const char *ntpServer = "pool.ntp.org";
-extern Logger logger;
 
 void logEvent(String timestamp, String eventType, String description, String status)
 {
@@ -12,7 +11,6 @@ void logEvent(String timestamp, String eventType, String description, String sta
     Serial.print(description);
     Serial.print(" ");
     Serial.println(status);
-    logger.log(timestamp + " " + eventType + " " + description + " " + status);
 }
 
 void logSensorData(String timestamp, float temperature, float humidity, bool error)

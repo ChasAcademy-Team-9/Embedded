@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "mockJson.h"
 #include "wifiHandler.h"
+#include "espLogger.h"
 
 Logger logger;
 

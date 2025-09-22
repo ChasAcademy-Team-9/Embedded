@@ -1,6 +1,7 @@
 #ifndef LOG_H
 #define LOG_H
-#include "espLogger.h"
+
+#include <Arduino.h>
 
 extern const char *ntpServer;
 const long gmtOffset_sec = 3600;

@@ -2,6 +2,7 @@
 #define ESPLOGGER_H
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 // Max number of log entries
 #define LOGGER_MAX_ENTRIES 20
@@ -24,7 +25,8 @@ public:
 
     // Get number of stored log entries
     size_t size();
-    
+
+    void update(bool wifiConnected, JsonArray arr);
 
 private:
     void load();
@@ -34,6 +36,7 @@ private:
     char buffer[LOGGER_MAX_ENTRIES][LOGGER_MSG_LENGTH];
     size_t head;   // index of the next write position
     size_t count;  // number of valid entries
+    bool loggerActive;
 };
 
 #endif

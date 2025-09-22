@@ -1,5 +1,7 @@
 #include "espLogger.h"
 #include <Preferences.h>
+#include "sensorDataHandler.h"
+#include "log.h"
 
 // Create a global Preferences object for ESP32 non-volatile storage
 Preferences prefs;
@@ -12,6 +14,7 @@ void Logger::begin()
 {
     Serial.println("Logger init for ESP32");
 
+    loggerActive = false;
     // Open the "logger" namespace in Preferences
     // false = read/write mode
     prefs.begin("logger", false);
@@ -26,6 +29,7 @@ void Logger::begin()
 // Add a new log entry
 void Logger::log(const String &msg)
 {
+    Serial.println("Logging on ESP32: " + msg);
     // Copy the String message into the fixed-size char buffer
     // Truncate if longer than LOGGER_MSG_LENGTH - 1
     msg.substring(0, LOGGER_MSG_LENGTH - 1).toCharArray(buffer[head], LOGGER_MSG_LENGTH);
@@ -85,7 +89,7 @@ void Logger::load()
     for (size_t i = 0; i < count; i++)
     {
         String s = prefs.getString(("log" + String(i)).c_str(), ""); // default to empty
-        s.toCharArray(buffer[i], LOGGER_MSG_LENGTH); // store as fixed-size char array
+        s.toCharArray(buffer[i], LOGGER_MSG_LENGTH);                 // store as fixed-size char array
     }
 }
 
@@ -122,4 +126,27 @@ void Logger::clearAll()
     // Update metadata in Preferences
     prefs.putUInt("count", count);
     prefs.putUInt("head", head);
+}
+
+void Logger::update(bool Connected, JsonArray arr)
+{
+    // Compute median of the entire array
+    SensorData medianLog = calcMedian(arr);
+    String timeStamp = getTimeStamp();
+
+    if(!Connected && !loggerActive)
+    {
+        log("Server disconnected, starting logger");
+        loggerActive = true;
+    }
+    else if(!Connected && loggerActive)
+    {
+        String logEntry = timeStamp + " Temp: " + String(medianLog.temperature, 2) + " C, Humidity: " + String(medianLog.humidity, 2) + " %";
+        log(logEntry);
+    }
+    else if(Connected && loggerActive)
+    {
+        log("Server connected, stopping logger");
+        loggerActive = false;
+    }
 }
