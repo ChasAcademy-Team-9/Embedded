@@ -2,38 +2,33 @@
 #define ARDUINOLOGGER_H
 
 #include <Arduino.h>
+#include <EEPROM.h>
 
-// Max number of log entries
-#define LOGGER_MAX_ENTRIES 20
-// Max length of each log message
-#define LOGGER_MSG_LENGTH 60
+// ==== CONFIG ====
+#define LOGGER_MAX_ENTRIES   64     // total number of logs in EEPROM
+#define LOGGER_MSG_LENGTH    32     // max length of each log message (including '\0')
+#define EEPROM_SIZE          (10 + LOGGER_MAX_ENTRIES * LOGGER_MSG_LENGTH)
 
+// ==== LOGGER CLASS ====
 class Logger {
 public:
-    Logger();
+    Logger() : head(0), count(0) {}
+
     void begin();
-
-    // Add a log entry
     void log(const String &msg);
-
-    // Print all log entries to Serial
     void printAll();
-
-    // Get a specific log entry by index
     String getEntry(size_t index);
-
-    // Get number of stored log entries
-    size_t size();
-    
-
-private:
-    void load();
-    void saveLastEntry();
+    size_t size() { return count; }
     void clearAll();
 
+private:
     char buffer[LOGGER_MAX_ENTRIES][LOGGER_MSG_LENGTH];
-    size_t head;   // index of the next write position
-    size_t count;  // number of valid entries
+    size_t head;
+    size_t count;
+
+    void load();
+    void saveMeta();
+    void saveEntry(size_t index);
 };
 
 #endif
