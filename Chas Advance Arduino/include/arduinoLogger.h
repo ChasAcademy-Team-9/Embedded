@@ -7,7 +7,7 @@
 
 // ==== CONFIG ====
 #define LOGGER_MAX_ENTRIES 64 // total number of logs in EEPROM
-#define LOGGER_MSG_LENGTH 32  // max length of each log message (including '\0')
+#define LOGGER_MSG_LENGTH 16  // max length of each log message (including '\0')
 #define EEPROM_SIZE (10 + LOGGER_MAX_ENTRIES * LOGGER_MSG_LENGTH)
 
 // ==== LOGGER CLASS ====

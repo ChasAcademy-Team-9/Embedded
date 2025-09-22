@@ -170,7 +170,7 @@ void Logger::update(bool wifiConnected)
 
 void Logger::logMedian(const SensorData &medianData)
 {
-    log("t:" + String(medianData.temperature) +
-        " h:" + String(medianData.humidity) +
-        (medianData.error ? " ERR" : ""));
+    log(String(medianData.temperature) + "," +
+        String(medianData.humidity) +
+        (medianData.error ? "1" : "0"));
 }
