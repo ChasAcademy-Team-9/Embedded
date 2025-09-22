@@ -1,5 +1,7 @@
 #include "log.h"
 
+extern Logger logger;
+
 void logEvent(String eventType, String description, String status)
 {
     Serial.print(eventType);

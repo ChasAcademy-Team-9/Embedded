@@ -1,15 +1,35 @@
 #include "wifiHandler.h"
+#include "arduinoLogger.h"
 #include "ARDUINOSECRETS.h"
 
-void connectToESPAccessPoint()
+extern Logger logger;
+
+bool wifiConnecting = false;
+unsigned long wifiConnectStart = 0;
+
+void connectToESPAccessPointAsync()
 {
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
+    if (!wifiConnecting && WiFi.status() != WL_CONNECTED)
     {
-        delay(500);
-        Serial.print(".");
+        WiFi.begin(ssid, password);
+        wifiConnecting = true;
+        wifiConnectStart = millis();
+        Serial.println("Starting WiFi connection...");
     }
-    Serial.println("\nArduino connected to ESP32 Access Point");
+
+    if (wifiConnecting)
+    {
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            wifiConnecting = false;
+            Serial.println("\nArduino connected to ESP32 Access Point");
+        }
+        else if (millis() - wifiConnectStart > 10000)
+        { // timeout 10s
+            wifiConnecting = false;
+            Serial.println("\nWiFi connection timed out");
+        }
+    }
 }
 
 void sendDataToESP32(String jsonString)
@@ -18,7 +38,7 @@ void sendDataToESP32(String jsonString)
     if (WiFi.status() != WL_CONNECTED)
     {
         Serial.println("WiFi not connected, reconnecting...");
-        connectToESPAccessPoint();
+        connectToESPAccessPointAsync();
     }
 
     WiFiClient client;
@@ -39,4 +59,10 @@ void sendDataToESP32(String jsonString)
                  jsonString);
 
     client.stop();
+}
+
+void updateLogger()
+{
+    bool connected = (WiFi.status() == WL_CONNECTED);
+    logger.update(connected);
 }
