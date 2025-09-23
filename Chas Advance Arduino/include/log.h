@@ -1,7 +1,7 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include "arduinoLogger.h"
+#include <Arduino.h>
 
 enum ErrorType {
     NONE = 0,

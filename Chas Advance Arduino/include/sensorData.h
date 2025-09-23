@@ -4,7 +4,6 @@
 #include "log.h"
 #include "thresholds.h"
 
-
 struct SensorData
 {
     float temperature;
@@ -12,7 +11,6 @@ struct SensorData
     bool error;
     ErrorType errorType;
 };
-
 
 bool checkThresholds(SensorData &data, const Thresholds &thresholds);
 #endif

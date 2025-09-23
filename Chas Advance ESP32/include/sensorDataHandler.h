@@ -11,7 +11,7 @@ struct SensorData
     float temperature;
     float humidity;
     bool error;
-
+    ErrorType errorType;
 };
 
 float median(std::vector<float>& values);

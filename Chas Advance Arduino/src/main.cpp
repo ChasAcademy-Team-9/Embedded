@@ -6,6 +6,7 @@
 #include <vector>
 #include "SensorData.h"
 #include "batchHandler.h"
+#include "arduinoLogger.h"
 
 #define DHTPIN 8
 #define DHTTYPE DHT11
@@ -43,8 +44,10 @@ void loop()
     data.error = true;
     data.errorType = SENSOR_FAIL;
   }
-  checkThresholds(data, getThresholdsForMode(currentMode));
-
+  if (!data.error)
+  {
+    checkThresholds(data, getThresholdsForMode(currentMode));
+  }
   connectToESPAccessPointAsync();
   updateLogger();
 
