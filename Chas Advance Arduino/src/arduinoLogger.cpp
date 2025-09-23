@@ -166,6 +166,21 @@ void Logger::update(bool wifiConnected)
         logMedian(medianData);
         loggerActive = false;
     }
+
+    if (loggerActive)
+    {
+        for (auto &entry : batch)
+        {
+            if (entry.error)
+            {
+                // Log warning if any entry in the batch has an error
+                log(String(entry.temperature) + "," +
+                    String(entry.humidity) + "," +
+                    String(static_cast<int>(entry.errorType)));
+                return; // Only log once per batch
+            }
+        }
+    }
 }
 
 void Logger::logMedian(const SensorData &medianData)

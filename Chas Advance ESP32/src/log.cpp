@@ -13,17 +13,24 @@ void logEvent(String timestamp, String eventType, String description, String sta
     Serial.println(status);
 }
 
-void logSensorData(String timestamp, float temperature, float humidity, bool error)
+void logSensorData(String timestamp, float temperature, float humidity, ErrorType errorType)
 {
-    if (error)
+    char buffer[50];
+    snprintf(buffer, sizeof(buffer), "Temp=%.1f Hum=%.1f", temperature, humidity);
+
+    switch (errorType)
     {
-        logEvent(timestamp, "ERROR", "No data", "FAIL");
-    }
-    else
-    {
-        char buffer[50];
-        snprintf(buffer, sizeof(buffer), "Temp=%.1f Hum=%.1f", temperature, humidity);
-        logEvent(timestamp, "INFO", buffer, "OK");
+    case NONE:
+        logEvent(timestamp,"INFO", buffer, "OK");
+        break;
+    case TOO_LOW:
+        logEvent(timestamp,"WARNING_Sensor data too low", buffer, "CHECK");
+        break;
+    case TOO_HIGH:
+        logEvent(timestamp,"WARNING_Sensor data too high", buffer, "CHECK");
+        break;
+    case SENSOR_FAIL:
+        logEvent(timestamp,"ERROR", "Sensor failure", "FAIL");
     }
 }
 

@@ -6,6 +6,7 @@
 static std::vector<SensorData> batchBuffer;
 static unsigned long batchStartTime = 0;
 extern Logger logger;
+extern TemperatureMode currentMode; 
 
 void batchSensorReadings(const SensorData &data)
 {
@@ -30,7 +31,7 @@ SensorData calculateMedian(std::vector<SensorData> &buffer)
 
     for (const auto &data : buffer)
     {
-        if (!data.error)
+        if (!data.errorType == ErrorType::SENSOR_FAIL)
         {
             temps.push_back(data.temperature);
             hums.push_back(data.humidity);

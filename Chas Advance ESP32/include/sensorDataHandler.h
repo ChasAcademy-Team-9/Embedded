@@ -4,12 +4,14 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <vector>
+#include "log.h"
 
 struct SensorData
 {
     float temperature;
     float humidity;
     bool error;
+
 };
 
 float median(std::vector<float>& values);

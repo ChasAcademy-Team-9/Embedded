@@ -12,6 +12,7 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
+TemperatureMode currentMode = ROOM_TEMP; // Default mode
 
 std::vector<SensorData> batchBuffer;
 
@@ -36,15 +37,19 @@ void loop()
   float humidity = dht.readHumidity();
   bool error = false;
 
-  connectToESPAccessPointAsync();
-
+  SensorData data = {temperature, humidity, error, NONE};
   if (isnan(humidity) || isnan(temperature))
-    error = true;
+  {
+    data.error = true;
+    data.errorType = SENSOR_FAIL;
+  }
+  checkThresholds(data, getThresholdsForMode(currentMode));
 
+  connectToESPAccessPointAsync();
   updateLogger();
-  logSensorData(temperature, humidity, error);
-  SensorData data = {temperature, humidity, error};
+
   batchSensorReadings(data);
+  logSensorData(data.temperature, data.humidity, data.errorType);
 
   delay(2000);
 }
