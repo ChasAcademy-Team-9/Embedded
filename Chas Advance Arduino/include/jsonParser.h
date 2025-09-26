@@ -8,5 +8,5 @@
 
 String parseJSON(float temperature, float humidity, bool error);
 String createBatchJson(const std::vector<SensorData> &buffer);
-
+SensorData getDataFromJson(const String &json);
 #endif

@@ -54,5 +54,7 @@ void loop()
   batchSensorReadings(data);
   logSensorData(data.temperature, data.humidity, data.errorType);
 
+  retryFailedBatches();
+  
   delay(2000);
 }
