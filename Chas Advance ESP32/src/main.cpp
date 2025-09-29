@@ -3,7 +3,7 @@
 #include "wifiHandler.h"
 #include "espLogger.h"
 
-Logger logger;
+ESPLogger logger;
 
 void setup()
 {
@@ -16,7 +16,8 @@ void setup()
   logStartup();
 
   // Print all previous log entries
-  logger.printAll();
+  logger.printBatches();
+  logger.printErrors();
 
   initWifi();
 }
@@ -24,8 +25,8 @@ void setup()
 void loop()
 {
   checkDataTimeout(timeSinceDataReceived);
-
   server.handleClient();
+  trySendPendingBatches();
   delay(1000);
 }
 
