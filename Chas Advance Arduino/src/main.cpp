@@ -56,5 +56,5 @@ void loop()
 
   retryFailedBatches();
   
-  delay(2000);
+  delay(3000);
 }
