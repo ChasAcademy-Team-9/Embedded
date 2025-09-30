@@ -1,4 +1,5 @@
 #include "espLogger.h"
+#include <CRC32.h>
 
 ESPLogger::ESPLogger() {}
 
@@ -36,8 +37,7 @@ void ESPLogger::logBatch(JsonArray arr)
     size_t n = countBatches();
     if (n >= MAX_BATCHES)
     {
-        // Remove oldest - circular buffering
-        removeOldestBatch();
+        removeOldestBatch(); // Remove oldest - circular buffering
     }
 
     File f = LittleFS.open(BATCH_FILE, FILE_APPEND);
@@ -63,7 +63,11 @@ void ESPLogger::logBatch(JsonArray arr)
     String jsonStr;
     serializeJson(doc, jsonStr);
 
-    f.println(jsonStr);
+    // Calc CRC32 checksum
+    uint32_t crc = CRC32::calculate(jsonStr.c_str(), jsonStr.length());
+    crc = 9999999; // Wrong CRC for testing
+    // write JSON + checksum
+    f.printf("%s|%08X\n", jsonStr.c_str(), crc);
     f.close();
 }
 
@@ -107,9 +111,31 @@ bool ESPLogger::getOldestBatch(String &out)
     if (!f)
         return false;
 
-    out = f.readStringUntil('\n');
+    String line = f.readStringUntil('\n');
     f.close();
-    return out.length() > 0;
+
+    int sep = line.lastIndexOf("|CRC:");
+    if (sep == -1)
+    {
+        logError("Corrupt batch: " + line);
+        removeOldestBatch();
+        return false;
+    }
+
+    String jsonPart = line.substring(0, sep);
+    uint32_t savedCrc = line.substring(sep + 5).toInt();
+    uint32_t calcCrc = CRC32::calculate(jsonPart.c_str(), jsonPart.length());
+
+    if (savedCrc != calcCrc)
+    {
+        Serial.println("Corrupt data detected, removing batch");
+        logError("Corrupt batch: " + line);
+        removeOldestBatch();   
+        return false;
+    }
+
+    out = jsonPart;
+    return true;
 }
 
 void ESPLogger::removeOldestBatch()
