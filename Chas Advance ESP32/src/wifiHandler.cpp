@@ -2,13 +2,13 @@
 #include "ESPSECRETS.h"
 #include "espLogger.h"
 
-unsigned long timeSinceDataReceived = 0; 
+unsigned long timeSinceDataReceived = 0;
 WebServer server;
 extern ESPLogger logger;
 
-//API batch send variables
+// API batch send variables
 unsigned long lastRetryTime = 0;
-const unsigned long retryInterval = 10000; 
+const unsigned long retryInterval = 10000;
 bool retryInProgress = false;
 
 void initWifi()
@@ -85,7 +85,7 @@ void handlePostRequest()
     if (!postToServer(arr))
     {
       // failed - Log to flash
-      Serial.print("Failed to send new batch to server - saving in flash");
+      Serial.print("Failed to send new batch to server - saving in flash \n");
       logger.logBatch(arr);
     }
 
@@ -99,46 +99,57 @@ void handlePostRequest()
   }
 }
 
-void trySendPendingBatches() {
-    static String batchJson;
-    static int attempt = 0;
+void trySendPendingBatches()
+{
+  static std::vector<SensorEntry> batchEntries;
+  static uint16_t batchIndex = 0;
+  static int attempt = 0;
 
-    // If no batch loaded/retry in progress, get the next batch
-    if (!retryInProgress) {
-        if (!logger.getOldestBatch(batchJson)) return; // No batch
-        attempt = 0;
-        retryInProgress = true;
+  if (!retryInProgress)
+  {
+    if (!logger.getOldestBatch(batchEntries, batchIndex))
+    {
+      return;
     }
+    attempt = 0;
+    retryInProgress = true;
+  }
 
-    // Check if time for next try
-    if (millis() - lastRetryTime < retryInterval) return;
+  if (millis() - lastRetryTime < retryInterval)
+    return;
+  lastRetryTime = millis();
+  attempt++;
 
-    lastRetryTime = millis();
-    attempt++;
+  Serial.printf("Sending saved batch %d attempt %d/%d...\n", batchIndex, attempt, 3);
 
-    Serial.printf("Sending saved batch attempt %d/%d...\n", attempt, 3);
+  // Convert to JSON
+  StaticJsonDocument<2048> doc;
+  doc["timestamp"] = formatUnixTime(batchEntries[0].timestamp);
+  JsonArray dataArr = doc.createNestedArray("data");
+  for (const auto &entry : batchEntries)
+  {
+    JsonObject obj = dataArr.createNestedObject();
+    obj["t"] = entry.temperature;
+    obj["h"] = entry.humidity;
+    obj["err"] = entry.error;
+    obj["et"] = entry.errorType;
+  }
 
-    StaticJsonDocument<1024> doc;
-    DeserializationError err = deserializeJson(doc, batchJson);
-    if (err) {
-        Serial.println("Failed to parse saved batch JSON, removing it");
-        logger.removeOldestBatch();
-        retryInProgress = false;
-        return;
-    }
+  if (postToServer(dataArr))
+  {
+    Serial.println("Saved batch sent successfully, removing file");
+    String fname = logger.getBatchFilename(batchIndex);
+    LittleFS.remove(fname);
+    retryInProgress = false;
+    batchEntries.clear();
+    return;
+  }
 
-    JsonArray arr = doc.as<JsonArray>();
-    if (postToServer(arr)) {
-        Serial.println("Saved batch sent successfully, removing from storage");
-        logger.removeOldestBatch();
-        retryInProgress = false;
-        return;
-    }
-
-    if (attempt >= 3) {
-        Serial.println("Batch send failed, will retry later");
-        retryInProgress = false;
-    }
+  if (attempt >= 3)
+  {
+    Serial.println("Batch send failed, will retry later");
+    retryInProgress = false;
+  }
 }
 
 // Send a batch to API - Example POST HTTP Request

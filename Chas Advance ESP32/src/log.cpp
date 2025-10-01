@@ -71,3 +71,13 @@ String getTimeStamp()
     }
     return timeStamp;
 }
+
+//Convert unix timestamp to formatted string
+String formatUnixTime(uint32_t ts)
+{
+    time_t t = ts;
+    struct tm *timeinfo = localtime(&t);
+    char buffer[20];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+    return String(buffer);
+}

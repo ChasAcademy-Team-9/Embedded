@@ -21,5 +21,7 @@ void logSensorData(String timestamp, float temperature, float humidity, ErrorTyp
 void logStartup();
 void checkDataTimeout(unsigned long &timeSinceDataReceived);
 String getTimeStamp();
+String formatUnixTime(uint32_t ts);
+
 
 #endif
