@@ -51,22 +51,8 @@ void ESPLogger::clearErrors()
     LittleFS.remove(ERROR_FILE);
 }
 
-void ESPLogger::logBatch(JsonArray arr)
-{
-    std::vector<SensorEntry> entries;
-
-    // Convert JSON objects to SensorEntry structs
-    for (JsonObject obj : arr)
-    {
-        SensorEntry entry;
-        entry.timestamp = timestampStringToUnix(getTimeStamp());
-        entry.temperature = obj["temperature"] | 0.0f;
-        entry.humidity = obj["humidity"] | 0.0f;
-        entry.error = obj["error"] | false;
-        entry.errorType = obj["errorType"] | 0;
-        entries.push_back(entry);
-    }
-
+void ESPLogger::logBatch(std::vector<SensorData>& entries)
+   {
     if (entries.empty())
     {
         Serial.println("No valid entries in JSON array; batch not logged");
@@ -74,7 +60,7 @@ void ESPLogger::logBatch(JsonArray arr)
     }
 
     // Calculate CRC for integrity check
-    uint32_t crc = CRC32::calculate((uint8_t *)entries.data(), entries.size() * sizeof(SensorEntry));
+    uint32_t crc = CRC32::calculate((uint8_t *)entries.data(), entries.size() * sizeof(SensorData));
     
     //crc = 9999; // For testing, force bad CRC
 
@@ -103,7 +89,7 @@ void ESPLogger::logBatch(JsonArray arr)
     uint16_t count = entries.size();
     size_t written = 0;
     written += f.write((uint8_t *)&count, sizeof(count));
-    written += f.write((uint8_t *)entries.data(), count * sizeof(SensorEntry));
+    written += f.write((uint8_t *)entries.data(), count * sizeof(SensorData));
     written += f.write((uint8_t *)&crc, sizeof(crc));
     f.close();
 
@@ -125,7 +111,7 @@ void ESPLogger::printBatches()
     for (uint16_t idx : indices)
     {
         String fname = getBatchFilename(idx);
-        std::vector<SensorEntry> entries;
+        std::vector<SensorData> entries;
         // Read and validate batch file
         if (!readBatchFile(fname, entries))
         {
@@ -140,7 +126,7 @@ void ESPLogger::printBatches()
     Serial.println("---- Batch log end ----");
 }
 
-bool ESPLogger::getOldestBatch(std::vector<SensorEntry> &outEntries, uint16_t &batchIndex)
+bool ESPLogger::getOldestBatch(std::vector<SensorData> &outEntries, uint16_t &batchIndex)
 {
     auto indices = getBatchIndices();
     if (indices.empty())
@@ -202,7 +188,7 @@ std::vector<uint16_t> ESPLogger::getBatchIndices()
         {
             uint16_t idx = name.substring(7, name.length() - 4).toInt();
             indices.push_back(idx);
-            Serial.printf("Found batch file: %s, index: %d\n", name.c_str(), idx);
+            //Serial.printf("Found batch file: %s, index: %d\n", name.c_str(), idx);
         }
         file = root.openNextFile();
     }
@@ -210,7 +196,7 @@ std::vector<uint16_t> ESPLogger::getBatchIndices()
     return indices;
 }
 
-bool ESPLogger::readBatchFile(const String &fname, std::vector<SensorEntry> &outEntries)
+bool ESPLogger::readBatchFile(const String &fname, std::vector<SensorData> &outEntries)
 {
     File f = LittleFS.open(fname, FILE_READ);
     if (!f)
@@ -232,14 +218,14 @@ bool ESPLogger::readBatchFile(const String &fname, std::vector<SensorEntry> &out
         return false;
     }
 
-    if (f.size() < sizeof(uint16_t) + count * sizeof(SensorEntry) + sizeof(uint32_t))
+    if (f.size() < sizeof(uint16_t) + count * sizeof(SensorData) + sizeof(uint32_t))
     {
         f.close();
         return false;
     }
 
     outEntries.resize(count);
-    if (f.read((uint8_t *)outEntries.data(), count * sizeof(SensorEntry)) != count * sizeof(SensorEntry))
+    if (f.read((uint8_t *)outEntries.data(), count * sizeof(SensorData)) != count * sizeof(SensorData))
     {
         f.close();
         return false;
@@ -254,32 +240,14 @@ bool ESPLogger::readBatchFile(const String &fname, std::vector<SensorEntry> &out
 
     f.close();
 
-    uint32_t calcCrc = CRC32::calculate((uint8_t *)outEntries.data(), count * sizeof(SensorEntry));
+    uint32_t calcCrc = CRC32::calculate((uint8_t *)outEntries.data(), count * sizeof(SensorData));
     if (calcCrc != savedCrc)
         return false;
 
     return true;
 }
 
-uint32_t ESPLogger::timestampStringToUnix(const String &tsStr)
-{
-    struct tm timeinfo = {0};
-
-    if (sscanf(tsStr.c_str(), "%4d-%2d-%2d %2d:%2d:%2d",
-               &timeinfo.tm_year, &timeinfo.tm_mon, &timeinfo.tm_mday,
-               &timeinfo.tm_hour, &timeinfo.tm_min, &timeinfo.tm_sec) != 6)
-    {
-        Serial.println("Failed to parse timestamp");
-        return 0;
-    }
-
-    timeinfo.tm_year -= 1900; // struct tm expects years since 1900
-    timeinfo.tm_mon -= 1;     // struct tm months are 0-11
-
-    return (uint32_t)mktime(&timeinfo);
-}
-
-void ESPLogger::printEntries(const std::vector<SensorEntry> &entries)
+void ESPLogger::printEntries(const std::vector<SensorData> &entries)
 {
     for (const auto &entry : entries)
     {

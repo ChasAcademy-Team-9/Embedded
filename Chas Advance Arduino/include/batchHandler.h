@@ -6,7 +6,7 @@
 #include <Arduino.h>
 
 struct FailedBatch {
-    String json;
+    std::vector<SensorData> batch;
     uint8_t retries;
 };
 

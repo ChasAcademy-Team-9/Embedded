@@ -1,5 +1,4 @@
 #include "batchHandler.h"
-#include "jsonParser.h"
 #include "arduinoLogger.h"
 #include "wifiHandler.h"
 
@@ -19,8 +18,7 @@ void batchSensorReadings(const SensorData &data)
 
     if (millis() - batchStartTime >= batchSendInterval)
     {
-        String batchJson = createBatchJson(batchBuffer);
-        sendDataToESP32(batchJson);
+        sendDataToESP32(batchBuffer);
         batchBuffer.clear();
         batchStartTime = millis();
     }

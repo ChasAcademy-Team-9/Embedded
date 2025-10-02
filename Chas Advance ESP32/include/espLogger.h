@@ -9,22 +9,13 @@
 
 #define MAX_ENTRIES 16
 
-struct SensorEntry
-{
-    uint32_t timestamp;   /**< Unix timestamp of the sensor reading */
-    float temperature;    /**< Temperature value */
-    float humidity;       /**< Humidity value */
-    bool error;           /**< Whether there was an error in this reading */
-    uint8_t errorType;    /**< Type of error, if any */
-};
-
 /**
  * @brief Batch structure to store multiple sensor entries with CRC.
  */
 struct Batch
 {
     uint16_t numEntries;
-    SensorEntry entries[MAX_ENTRIES];
+    SensorData entries[MAX_ENTRIES];
     uint32_t crc32; /**< CRC of timestamp + numEntries + entries */
 };
 
@@ -66,7 +57,7 @@ public:
      * @brief Logs a batch of sensor readings to LittleFS.
      * @param arr JSON array of sensor objects (must contain temperature, humidity, error, errorType)
      */
-    void logBatch(JsonArray arr);
+    void logBatch(std::vector<SensorData>& entries);
 
     /**
      * @brief Prints all valid batch files and their entries to Serial.
@@ -79,7 +70,7 @@ public:
      * @param batchIndex Index of the batch file.
      * @return True if a valid batch was retrieved, false otherwise.
      */
-    bool getOldestBatch(std::vector<SensorEntry> &outEntries, uint16_t &batchIndex);
+    bool getOldestBatch(std::vector<SensorData> &outEntries, uint16_t &batchIndex);
 
     /**
      * @brief Removes the oldest batch file from storage.
@@ -112,13 +103,13 @@ public:
      * @param outEntries Vector to store sensor entries.
      * @return True if the batch is valid and read successfully.
      */
-    bool readBatchFile(const String &fname, std::vector<SensorEntry> &outEntries);
+    bool readBatchFile(const String &fname, std::vector<SensorData> &outEntries);
 
     /**
      * @brief Prints a vector of sensor entries to Serial.
      * @param entries Vector of SensorEntry objects.
      */
-    void printEntries(const std::vector<SensorEntry> &entries);
+    void printEntries(const std::vector<SensorData> &entries);
 
     // -------- Timestamp utilities --------
     
