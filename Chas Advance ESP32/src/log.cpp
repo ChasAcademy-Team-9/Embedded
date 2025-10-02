@@ -76,8 +76,26 @@ String getTimeStamp()
 String formatUnixTime(uint32_t ts)
 {
     time_t t = ts;
-    struct tm *timeinfo = localtime(&t);
+    struct tm *timeinfo = localtime(&t); // UTC, no DST
     char buffer[20];
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
     return String(buffer);
+}
+
+uint32_t timestampStringToUnix(const String &tsStr)
+{
+    struct tm timeinfo = {0};
+
+    if (sscanf(tsStr.c_str(), "%4d-%2d-%2d %2d:%2d:%2d",
+               &timeinfo.tm_year, &timeinfo.tm_mon, &timeinfo.tm_mday,
+               &timeinfo.tm_hour, &timeinfo.tm_min, &timeinfo.tm_sec) != 6)
+    {
+        Serial.println("Failed to parse timestamp");
+        return 0;
+    }
+
+    timeinfo.tm_year -= 1900; // struct tm expects years since 1900
+    timeinfo.tm_mon -= 1;     // struct tm months are 0-11
+
+    return (uint32_t)mktime(&timeinfo);
 }

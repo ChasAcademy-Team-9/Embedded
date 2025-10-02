@@ -1,8 +1,6 @@
 #include "wifiHandler.h"
 #include "arduinoLogger.h"
 #include "ARDUINOSECRETS.h"
-#include "batchHandler.h"
-#include "jsonParser.h"
 
 extern Logger logger;
 
@@ -38,14 +36,8 @@ void connectToESPAccessPointAsync()
     }
 }
 
-void sendDataToESP32(String jsonString)
+void sendDataToESP32(std::vector<SensorData> &batch)
 {
-    if (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.println("WiFi not connected, reconnecting...");
-        connectToESPAccessPointAsync();
-    }
-
     const int maxRetries = 3;
     bool success = false;
 
@@ -57,7 +49,7 @@ void sendDataToESP32(String jsonString)
         Serial.print(maxRetries);
         Serial.println("...");
 
-        if (postToESP32(jsonString))
+        if (postToESP32(batch))
         {
             success = true;
             break;
@@ -74,7 +66,7 @@ void sendDataToESP32(String jsonString)
         // logger.log("Batch send failed after 3 attempts");
         if (failedBatchCount < MAX_FAILED_BATCHES)
         {
-            failedBatches[failedBatchCount++] = {jsonString, 1};
+            failedBatches[failedBatchCount++] = {batch, 1};
             Serial.println("Batch queued for later retry");
         }
         else
@@ -84,8 +76,10 @@ void sendDataToESP32(String jsonString)
     }
 }
 
-bool postToESP32(const String &jsonString)
+bool postToESP32(std::vector<SensorData> &batch)
 {
+    if (batch.empty())
+        return false;
     // Simulate batch send failure
     // return false;
     WiFiClient client;
@@ -96,13 +90,20 @@ bool postToESP32(const String &jsonString)
         return false;
     }
 
+    uint32_t sendMillis = millis();  // tid för sändning
+    size_t totalSize = sizeof(sendMillis) + batch.size() * sizeof(SensorData); // Total storlek = 4 bytes sendMillis + n * sizeof(SensorData)
+
     // Send HTTP POST request to the esp
     client.print(String("POST /data HTTP/1.1\r\n") +
                  "Host: " + host + "\r\n" +
-                 "Content-Type: application/json\r\n" +
-                 "Content-Length: " + jsonString.length() + "\r\n" +
-                 "Connection: close\r\n\r\n" +
-                 jsonString);
+                 "Content-Type: application/octet-stream\r\n" +
+                 "Content-Length: " + totalSize + "\r\n" +
+                 "Connection: close\r\n\r\n");
+
+    client.flush();
+    client.write((uint8_t *)&sendMillis, sizeof(sendMillis));// Skicka sendMillis först
+    client.write((uint8_t *)batch.data(), batch.size() * sizeof(SensorData));// Skicka alla SensorData
+    client.flush();
 
     unsigned long timeout = millis();
     while (client.connected() && millis() - timeout < 2000)
@@ -129,7 +130,7 @@ void retryFailedBatches()
     for (int i = 0; i < failedBatchCount; i++)
     {
         FailedBatch &batch = failedBatches[i];
-        if (postToESP32(batch.json))
+        if (postToESP32(batch.batch))
         {
             Serial.println("Retry succeeded for batch");
             // Remove batch from queue
@@ -144,10 +145,10 @@ void retryFailedBatches()
             if (batch.retries >= 3)
             {
                 Serial.println("Retry limit reached, discarding batch");
-                SensorData data = getDataFromJson(batch.json);
+                SensorData data = calculateMedian(batch.batch);
                 data.errorType = ErrorType::WiFi_FAIL;
                 logger.log(String(data.temperature) + "," +
-                           String(data.humidity) + "0" + 
+                           String(data.humidity) + +"," +
                            String(static_cast<int>(data.errorType)));
                 for (int j = i; j < failedBatchCount - 1; j++)
                     failedBatches[j] = failedBatches[j + 1];

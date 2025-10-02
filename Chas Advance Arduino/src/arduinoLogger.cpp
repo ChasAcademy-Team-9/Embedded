@@ -192,5 +192,5 @@ void Logger::createLogFromBatch(std::vector<SensorData> &batch, unsigned long no
 void Logger::logMedian(const SensorData &medianData)
 {
     log(String(medianData.temperature) + "," +
-        String(medianData.humidity) + "0");
+        String(medianData.humidity) + ",");
 }

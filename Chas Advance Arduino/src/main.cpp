@@ -2,7 +2,6 @@
 #include "MockSensor.h"
 #include "log.h"
 #include "wifiHandler.h"
-#include "jsonParser.h"
 #include <vector>
 #include "SensorData.h"
 #include "batchHandler.h"
@@ -38,7 +37,7 @@ void loop()
   float humidity = dht.readHumidity();
   bool error = false;
 
-  SensorData data = {temperature, humidity, error, NONE};
+  SensorData data = {millis(),temperature, humidity, error, NONE};
   if (isnan(humidity) || isnan(temperature))
   {
     data.error = true;
@@ -52,7 +51,7 @@ void loop()
   updateLogger();
 
   batchSensorReadings(data);
-  logSensorData(data.temperature, data.humidity, data.errorType);
+  logSensorData(data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
 
   retryFailedBatches();
   
