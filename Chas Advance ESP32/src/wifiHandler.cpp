@@ -53,44 +53,6 @@ void setupHttpServer()
   Serial.println("HTTP server started");
 }
 
-// Read raw POST data into a buffer
-bool readPostData(WebServer &server, std::vector<uint8_t> &buffer)
-{
-  int contentLength = server.arg("plain").length();
-  if (contentLength == 0)
-  {
-    Serial.println("No POST data received");
-    return false;
-  }
-
-  buffer.resize(contentLength);
-  memcpy(buffer.data(), server.arg("plain").c_str(), contentLength);
-  return true;
-}
-
-// Deserialize raw bytes into a vector of SensorData
-bool parseSensorBatch(const std::vector<uint8_t> &buffer, std::vector<SensorData> &batch)
-{
-  if (buffer.size() < sizeof(uint16_t))
-  {
-    Serial.println("Data too short to contain count");
-    return false;
-  }
-
-  uint16_t count;
-  memcpy(&count, buffer.data(), sizeof(count));
-
-  if (buffer.size() != sizeof(count) + count * sizeof(SensorData))
-  {
-    Serial.println("Mismatch between count and data size");
-    return false;
-  }
-
-  batch.resize(count);
-  memcpy(batch.data(), buffer.data() + sizeof(count), count * sizeof(SensorData));
-  return true;
-}
-
 // --- Helpers ---
 
 // Check that the request line starts with "POST /data"
