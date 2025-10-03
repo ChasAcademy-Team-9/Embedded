@@ -147,7 +147,7 @@ void retryFailedBatches()
                 SensorData data = getDataFromJson(batch.json);
                 data.errorType = ErrorType::WiFi_FAIL;
                 logger.log(String(data.temperature) + "," +
-                           String(data.humidity) + "0" + 
+                           String(data.humidity) + "," + 
                            String(static_cast<int>(data.errorType)));
                 for (int j = i; j < failedBatchCount - 1; j++)
                     failedBatches[j] = failedBatches[j + 1];
