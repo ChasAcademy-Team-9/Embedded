@@ -31,7 +31,7 @@ SensorData calculateMedian(std::vector<SensorData> &buffer)
 
     for (const auto &data : buffer)
     {
-        if (!data.errorType == ErrorType::SENSOR_FAIL)
+        if (data.errorType != ErrorType::SENSOR_FAIL)
         {
             temps.push_back(data.temperature);
             hums.push_back(data.humidity);
