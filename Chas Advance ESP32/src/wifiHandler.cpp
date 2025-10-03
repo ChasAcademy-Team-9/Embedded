@@ -91,119 +91,120 @@ bool parseSensorBatch(const std::vector<uint8_t> &buffer, std::vector<SensorData
   return true;
 }
 
-// Main handler
-void handlePostRequestBinary(WiFiClient &client)
-{
-    if (!client.connected())
-    {
-        Serial.println("No client connected");
-        return;
-    }
+// --- Helpers ---
 
-    // --- Step 1: Read request line (e.g. "POST /data HTTP/1.1")
-    String requestLine = client.readStringUntil('\n');
-    requestLine.trim();
-    Serial.println("Request: " + requestLine);
-
-    if (!requestLine.startsWith("POST /data"))
-    {
+// Check that the request line starts with "POST /data"
+// If not, return 404 and close connection
+bool isValidPostRequest(WiFiClient &client, const String &requestLine) {
+    if (!requestLine.startsWith("POST /data")) {
         client.println("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
         client.stop();
-        return;
+        return false;
     }
+    return true;
+}
 
-    // --- Step 2: Read headers until blank line
+// Read HTTP headers and extract the Content-Length value
+// Returns -1 if not found
+int readContentLength(WiFiClient &client) {
     int contentLength = -1;
-    while (client.connected())
-    {
+    while (client.connected()) {
         String line = client.readStringUntil('\n');
         line.trim();
-        if (line.length() == 0) break; // end of headers
-
-        if (line.startsWith("Content-Length:"))
-        {
+        if (line.length() == 0) break; // empty line means end of headers
+        if (line.startsWith("Content-Length:")) {
             contentLength = line.substring(15).toInt();
         }
     }
+    return contentLength;
+}
 
-    if (contentLength <= 0)
-    {
-        Serial.println("No Content-Length or invalid");
-        client.println("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
-        client.stop();
-        return;
-    }
-
-    // --- Step 3: Read binary body
-    std::vector<uint8_t> buffer(contentLength);
+// Read the binary body of the request into a buffer
+// Returns true if exactly contentLength bytes were read
+bool readRequestBody(WiFiClient &client, std::vector<uint8_t> &buffer, int contentLength) {
+    buffer.resize(contentLength);
     int bytesRead = 0;
     unsigned long start = millis();
 
-    while (bytesRead < contentLength && millis() - start < 3000)
-    {
-        if (client.available())
-        {
+    // Keep reading until all bytes received or 3s timeout
+    while (bytesRead < contentLength && millis() - start < 3000) {
+        if (client.available()) {
             bytesRead += client.read(buffer.data() + bytesRead, contentLength - bytesRead);
         }
     }
+    return bytesRead == contentLength;
+}
 
-    if (bytesRead != contentLength)
-    {
-        Serial.printf("Expected %d bytes but got %d\n", contentLength, bytesRead);
-        client.println("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
-        client.stop();
-        return;
-    }
+// Parse the binary buffer into sendMillis + SensorData entries
+// Returns false if the payload is invalid
+bool parseBatch(const std::vector<uint8_t> &buffer, uint32_t &sendMillis, std::vector<SensorData> &batch) {
+    if (buffer.size() < sizeof(sendMillis)) return false;
 
-    // --- Step 4: Parse sendMillis + SensorData
-    if (contentLength < sizeof(uint32_t))
-    {
-        Serial.println("Content too short for sendMillis");
-        client.println("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
-        client.stop();
-        return;
-    }
-
-    uint32_t sendMillis;
+    // Extract sendMillis (first 4 bytes)
     memcpy(&sendMillis, buffer.data(), sizeof(sendMillis));
 
-    size_t dataSize = contentLength - sizeof(sendMillis);
-    if (dataSize % sizeof(SensorData) != 0)
-    {
-        Serial.println("Payload size is not a multiple of SensorData");
-        client.println("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
-        client.stop();
-        return;
-    }
+    // Remaining data should be a multiple of SensorData struct size
+    size_t dataSize = buffer.size() - sizeof(sendMillis);
+    if (dataSize % sizeof(SensorData) != 0) return false;
 
-    std::vector<SensorData> batch(dataSize / sizeof(SensorData));
+    // Copy SensorData entries into batch vector
+    batch.resize(dataSize / sizeof(SensorData));
     memcpy(batch.data(), buffer.data() + sizeof(sendMillis), dataSize);
+    return true;
+}
 
-    // --- Step 5: Assign absolute timestamps using sendMillis
+// Send an HTTP response and close the connection
+// 200 = OK, anything else = Bad Request
+void respond(WiFiClient &client, int code) {
+    if (code == 200) {
+        client.println("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
+    } else {
+        client.printf("HTTP/1.1 %d Bad Request\r\nConnection: close\r\n\r\n", code);
+    }
+    client.stop();
+}
+
+// --- Main handler ---
+
+// Handle an incoming HTTP POST request with binary body
+void handlePostRequestBinary(WiFiClient &client) {
+    if (!client.connected()) return;
+
+    // Step 1: Read and validate the request line
+    String requestLine = client.readStringUntil('\n');
+    requestLine.trim();
+    if (!isValidPostRequest(client, requestLine)) return;
+
+    // Step 2: Read headers and extract Content-Length
+    int contentLength = readContentLength(client);
+    if (contentLength <= 0) { respond(client, 400); return; }
+
+    // Step 3: Read the binary body into buffer
+    std::vector<uint8_t> buffer;
+    if (!readRequestBody(client, buffer, contentLength)) { respond(client, 400); return; }
+
+    // Step 4: Parse sendMillis + SensorData entries
+    uint32_t sendMillis;
+    std::vector<SensorData> batch;
+    if (!parseBatch(buffer, sendMillis, batch)) { respond(client, 400); return; }
+
+    // Step 5: Add timestamps and log entries
     assignAbsoluteTimestamps(sendMillis, batch);
-
     Serial.printf("Received batch with %d entries\n", batch.size());
-    for (const auto &entry : batch)
-    {
-        logSensorData(formatUnixTime(entry.timestamp),
-                      entry.temperature,
-                      entry.humidity,
-                      static_cast<ErrorType>(entry.errorType));
+    for (const auto &entry : batch) {
+        logSensorData(formatUnixTime(entry.timestamp), entry.temperature, entry.humidity, static_cast<ErrorType>(entry.errorType));
     }
 
-    timeSinceDataReceived = 0; // Reset timeout counter
+    timeSinceDataReceived = 0; // reset watchdog
+    respond(client, 200);      // Step 6: Send OK back to client
 
-    // --- Step 6: Send HTTP response
-    client.println("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
-    client.stop();
-
-    // --- Step 7: Attempt to send batch to backend server
-    if (!postBatchToServer(batch))
-    {
+    // Step 7: Try to forward batch to backend, otherwise store in flash
+    if (!postBatchToServer(batch)) {
         Serial.println("Failed to send batch to backend server - saving in flash");
         logger.logBatch(batch);
     }
 }
+
 
 void handleClient()
 {

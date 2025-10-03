@@ -19,6 +19,13 @@ void setupHttpServer();
 // Handles incoming POST requests to /data
 void handlePostRequestBinary(WiFiClient& client);
 void handleClient();
+// POST request helpers
+bool isValidPostRequest(WiFiClient &client, const String &requestLine);
+int readContentLength(WiFiClient &client);
+bool readRequestBody(WiFiClient &client, std::vector<uint8_t> &buffer, int contentLength);
+bool parseBatch(const std::vector<uint8_t> &buffer, uint32_t &sendMillis, std::vector<SensorData> &batch);
+void respond(WiFiClient &client, int code); 
+
 // Retry sending saved batches
 void trySendPendingBatches();
 bool sendJsonToServer(const String &jsonString);
