@@ -21,14 +21,3 @@ void parseJson(String json)
 
     logSensorData(timestamp, temperature, humidity, error);
 }
-
-void parseJsonArray(JsonArray arr, const String &timestamp)
-{
-    for (JsonObject obj : arr)
-    {
-        obj["timestamp"] = timestamp;
-        String updatedBody;
-        serializeJson(obj, updatedBody);
-        parseJson(updatedBody);
-    }
-}

@@ -1,10 +1,8 @@
 #include "wifiHandler.h"
 #include "ESPSECRETS.h"
-#include "espLogger.h"
 
 unsigned long timeSinceDataReceived = 0;
 WebServer server;
-extern Logger logger;
 
 void initWifi()
 {
@@ -59,7 +57,7 @@ void handlePostRequest()
   { // "plain" contains POST body
     String body = server.arg("plain");
 
-    StaticJsonDocument<2048> doc;
+    StaticJsonDocument<250> doc;
     DeserializationError error = deserializeJson(doc, body);
 
     if (error)
@@ -70,20 +68,17 @@ void handlePostRequest()
       return;
     }
 
-    if (!doc.is<JsonArray>())
-    {
-      server.send(400, "text/plain", "Expected JSON array");
-      return;
-    }
+    String timeStamp = getTimeStamp();
+    doc["timestamp"] = timeStamp;
 
-    parseJsonArray(doc.as<JsonArray>(), getTimeStamp());
+    String updatedBody;
+    serializeJson(doc, updatedBody);
+
+    // Parse sensor data
+    parseJson(updatedBody);
+
     server.send(200, "text/plain", "OK");
     timeSinceDataReceived = millis();
-
-    // Data received from sensor, check API connection status and update logger
-    bool connected = (WiFi.status() == WL_CONNECTED); // Placeholder for actual server connection status
-    connected = random(0, 2); // Mock connection status for testing
-    logger.update(connected, doc.as<JsonArray>());
   }
   else
   {
