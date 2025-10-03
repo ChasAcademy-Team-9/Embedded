@@ -1,6 +1,6 @@
 #include "jsonParser.h"
 
-//not used?
+// Deprecated: This function is currently unused but retained for legacy support or future use.
 String parseJSON(float temperature, float humidity, bool error)
 {
     StaticJsonDocument<200> doc;
