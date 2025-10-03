@@ -87,7 +87,7 @@ void ESPLogger::logBatch(std::vector<SensorData>& entries)
     }
 
     uint16_t count = entries.size();
-    size_t written = 0;
+    size_t written = 0; //Variable to keep track of bytes written
     written += f.write((uint8_t *)&count, sizeof(count));
     written += f.write((uint8_t *)entries.data(), count * sizeof(SensorData));
     written += f.write((uint8_t *)&crc, sizeof(crc));
@@ -186,13 +186,12 @@ std::vector<uint16_t> ESPLogger::getBatchIndices()
 
         if (name.startsWith("/batch_") && name.endsWith(".bin"))
         {
-            uint16_t idx = name.substring(7, name.length() - 4).toInt();
+            uint16_t idx = name.substring(7, name.length() - 4).toInt(); // Extract index out of name
             indices.push_back(idx);
-            //Serial.printf("Found batch file: %s, index: %d\n", name.c_str(), idx);
         }
         file = root.openNextFile();
     }
-    std::sort(indices.begin(), indices.end());
+    std::sort(indices.begin(), indices.end()); // Sort indices in ascending order
     return indices;
 }
 
@@ -204,34 +203,33 @@ bool ESPLogger::readBatchFile(const String &fname, std::vector<SensorData> &outE
 
     outEntries.clear();
 
-    // File too small to contain count + CRC
     if (f.size() < sizeof(uint16_t) + sizeof(uint32_t))
     {
-        f.close();
+        f.close(); // File too small to contain count + CRC
         return false;
     }
 
-    uint16_t count = 0;
+    uint16_t count = 0; // Read number of entries (count) - Must be >0 and reasonable.
     if (f.read((uint8_t *)&count, sizeof(count)) != sizeof(count) || count == 0 || count > 100)
     {
         f.close();
         return false;
     }
-
+    // Check file size matches expected size (count + entries + CRC)
     if (f.size() < sizeof(uint16_t) + count * sizeof(SensorData) + sizeof(uint32_t))
     {
         f.close();
         return false;
     }
 
-    outEntries.resize(count);
+    outEntries.resize(count); // Allocate space for entries and then read entries into vector
     if (f.read((uint8_t *)outEntries.data(), count * sizeof(SensorData)) != count * sizeof(SensorData))
-    {
+    { 
         f.close();
         return false;
     }
 
-    uint32_t savedCrc = 0;
+    uint32_t savedCrc = 0; // Read stored CRC, pointer is now at end of file
     if (f.read((uint8_t *)&savedCrc, sizeof(savedCrc)) != sizeof(savedCrc))
     {
         f.close();
