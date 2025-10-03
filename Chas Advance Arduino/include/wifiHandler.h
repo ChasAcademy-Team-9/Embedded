@@ -9,6 +9,8 @@ extern unsigned long wifiConnectStart;
 
 void connectToESPAccessPointAsync();
 void sendDataToESP32(String jsonString);
+bool postToESP32(const String &jsonString);
+void retryFailedBatches();
 void updateLogger();
 
 #endif // WIFIHANDLER_H
