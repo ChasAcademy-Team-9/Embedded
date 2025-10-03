@@ -18,8 +18,10 @@ void parseJson(String json)
     float temperature = doc["temperature"] | 0.0;
     float humidity = doc["humidity"] | 0.0;
     bool error = doc["error"] | false;
+    int errorTypeInt = doc["errorType"] | 0; // safe fallback
+    ErrorType errorType = static_cast<ErrorType>(errorTypeInt);
 
-    logSensorData(timestamp, temperature, humidity, error);
+    logSensorData(timestamp, temperature, humidity, errorType);
 }
 
 void parseJsonArray(JsonArray arr, const String &timestamp)
