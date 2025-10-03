@@ -25,7 +25,7 @@ void ESPLogger::logError(const String &msg)
     }
 
     String timeStamp = getTimeStamp();
-    f.printf("%s | Code:%d | %s\n", timeStamp.c_str(), msg.c_str());
+    f.printf("%s | %s\n", timeStamp.c_str(), msg.c_str());
     f.close();
 }
 
