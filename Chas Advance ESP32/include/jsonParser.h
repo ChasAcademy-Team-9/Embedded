@@ -4,6 +4,5 @@
 #include "log.h"
 
 void parseJson(String json);
-void parseJsonArray(JsonArray arr, const String &timestamp);
 
 #endif

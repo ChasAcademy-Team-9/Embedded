@@ -30,16 +30,17 @@ void logSensorData(String timestamp, float temperature, float humidity, bool err
 // OBS - Innehåller mockdata
 void logStartup()
 {
-    String timeStamp = getTimeStamp();
-    logEvent(timeStamp, "SYSTEM", "RESET", "OK");
+    char buf[32];
+    snprintf(buf, sizeof(buf), "2025-09-03 %02d:%02d:%02d", random(0, 24), random(0, 60), random(0, 60));
+    logEvent(buf, "SYSTEM", "RESET", "OK");
 }
 
 void checkDataTimeout(unsigned long &timeSinceDataReceived)
 {
-    if ((millis() - timeSinceDataReceived) > dataReceivedThreshold)
+    if ((millis() - timeSinceDataReceived) > 5000)
     {
-        // Generate warning if no data received for the configured threshold
-        logEvent(getTimeStamp(), "ERROR", "No data received for " + String(dataReceivedThreshold / 1000) + " seconds", "FAIL");
+        // If no data received for 5 seconds, generate warning
+        logEvent(getTimeStamp(), "ERROR", "No data recevied for 5 seconds", "FAIL");
         timeSinceDataReceived = millis(); // Reset timer
     }
 }

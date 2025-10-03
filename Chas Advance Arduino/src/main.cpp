@@ -1,33 +1,25 @@
+#include <Arduino.h>
 #include <DHT.h>
 #include "MockSensor.h"
 #include "log.h"
 #include "wifiHandler.h"
 #include "jsonParser.h"
-#include <vector>
-#include "SensorData.h"
-#include "batchHandler.h"
 
 #define DHTPIN 8
 #define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);
-Logger logger;
-
-std::vector<SensorData> batchBuffer;
 
 void setup()
 {
   Serial.begin(115200);
+  // randomSeed(analogRead(0));
   dht.begin();
-  delay(3000);
-  Serial.println("Starting Arduino...");
+  delay(4000);
 
-  // Initialize logger
-  logger.begin();
   logStartup();
 
-  // Print all previous log entries
-  logger.printAll();
+  connectToESPAccessPoint();
 }
 
 void loop()
@@ -36,15 +28,12 @@ void loop()
   float humidity = dht.readHumidity();
   bool error = false;
 
-  connectToESPAccessPointAsync();
-
   if (isnan(humidity) || isnan(temperature))
     error = true;
 
-  updateLogger();
+  // generateMockData(temperature, humidity, error);
   logSensorData(temperature, humidity, error);
-  SensorData data = {temperature, humidity, error};
-  batchSensorReadings(data);
+  sendDataToESP32(parseJSON(temperature, humidity, error));
 
   delay(2000);
 }

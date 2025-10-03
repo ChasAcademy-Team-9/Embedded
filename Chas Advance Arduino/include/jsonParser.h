@@ -2,10 +2,7 @@
 #define JSONPARSER_H
 
 #include <ArduinoJson.h>
-#include <vector>
-#include "SensorData.h"
 
 String parseJSON(float temperature, float humidity, bool error);
-String createBatchJson(const std::vector<SensorData> &buffer);
 
 #endif
