@@ -1,42 +1,36 @@
 #ifndef ESPLOGGER_H
 #define ESPLOGGER_H
 
-#include <Arduino.h>
+#include "FS.h"
+#include "LittleFS.h"
 #include <ArduinoJson.h>
+#include "sensorDataHandler.h"
 
-// Max number of log entries
-#define LOGGER_MAX_ENTRIES 20
-// Max length of each log message
-#define LOGGER_MSG_LENGTH 100
-
-class Logger {
+class ESPLogger {
 public:
-    Logger();
+    ESPLogger();
     void begin();
 
-    // Add a log entry
-    void log(const String &msg);
+    // Error logging
+    void logError(const String &msg);
+    void printErrors();
 
-    // Print all log entries to Serial
-    void printAll();
+    // Batch logging
+    void logBatch(JsonArray arr);      
+    void printBatches();               
+    bool getOldestBatch(String &out);  
+    void removeOldestBatch();          
 
-    // Get a specific log entry by index
-    String getEntry(size_t index);
-
-    // Get number of stored log entries
-    size_t size();
-
-    void update(bool wifiConnected, JsonArray arr);
+    // Generic utils
+    void clearErrors();
+    void clearBatches();
 
 private:
-    void load();
-    void saveLastEntry();
-    void clearAll();
+    const char *ERROR_FILE = "/errors.txt";
+    const char *BATCH_FILE = "/batches.txt";
+    const size_t MAX_BATCHES = 20;
 
-    char buffer[LOGGER_MAX_ENTRIES][LOGGER_MSG_LENGTH];
-    size_t head;   // index of the next write position
-    size_t count;  // number of valid entries
-    bool loggerActive;
+    size_t countBatches();           
 };
 
 #endif
