@@ -2,16 +2,17 @@
 #include "MockSensor.h"
 #include "log.h"
 #include "wifiHandler.h"
-#include "jsonParser.h"
 #include <vector>
 #include "SensorData.h"
 #include "batchHandler.h"
+#include "arduinoLogger.h"
 
 #define DHTPIN 8
 #define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
+TemperatureMode currentMode = ROOM_TEMP; // Default mode
 
 std::vector<SensorData> batchBuffer;
 
@@ -36,15 +37,23 @@ void loop()
   float humidity = dht.readHumidity();
   bool error = false;
 
-  connectToESPAccessPointAsync();
-
+  SensorData data = {millis(),temperature, humidity, error, NONE};
   if (isnan(humidity) || isnan(temperature))
-    error = true;
-
+  {
+    data.error = true;
+    data.errorType = SENSOR_FAIL;
+  }
+  if (!data.error)
+  {
+    checkThresholds(data, getThresholdsForMode(currentMode));
+  }
+  connectToESPAccessPointAsync();
   updateLogger();
-  logSensorData(temperature, humidity, error);
-  SensorData data = {temperature, humidity, error};
-  batchSensorReadings(data);
 
-  delay(2000);
+  batchSensorReadings(data);
+  logSensorData(data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
+
+  retryFailedBatches();
+  
+  delay(3000);
 }

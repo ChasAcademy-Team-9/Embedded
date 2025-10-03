@@ -2,30 +2,34 @@
 #include "mockJson.h"
 #include "wifiHandler.h"
 #include "espLogger.h"
+#include "esp_system.h"
 
-Logger logger;
+ESPLogger logger;
 
 void setup()
 {
   Serial.begin(115200);
   delay(3000);
   Serial.println("Starting ESP32...");
+  Serial.print("Reset reason: ");
+  Serial.println(esp_reset_reason());
+
+  initWifi();
 
   //Initialize logger
   logger.begin();
   logStartup();
+  //logger.clearBatches(); // For testing, clear old batches
 
   // Print all previous log entries
-  logger.printAll();
-
-  initWifi();
+  logger.printBatches();
+  logger.printErrors();
 }
 
 void loop()
 {
   checkDataTimeout(timeSinceDataReceived);
-
-  server.handleClient();
-  delay(1000);
+  handleClient();
+  trySendPendingBatches();
 }
 
