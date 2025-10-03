@@ -4,7 +4,12 @@
 
 unsigned long timeSinceDataReceived = 0;
 WebServer server;
-extern Logger logger;
+extern ESPLogger logger;
+
+// API batch send variables
+unsigned long lastRetryTime = 0;
+const unsigned long retryInterval = 10000;
+bool retryInProgress = false;
 
 void initWifi()
 {
@@ -75,18 +80,117 @@ void handlePostRequest()
       server.send(400, "text/plain", "Expected JSON array");
       return;
     }
+    JsonArray arr = doc.as<JsonArray>();
+    // Send batch to API
+    if (!postToServer(arr))
+    {
+      // failed - Log to flash
+      Serial.print("Failed to send new batch to server - saving in flash \n");
+      logger.logBatch(arr);
+    }
 
-    parseJsonArray(doc.as<JsonArray>(), getTimeStamp());
+    parseJsonArray(arr, getTimeStamp());
     server.send(200, "text/plain", "OK");
     timeSinceDataReceived = millis();
-
-    // Data received from sensor, check API connection status and update logger
-    bool connected = (WiFi.status() == WL_CONNECTED); // Placeholder for actual server connection status
-    connected = random(0, 2); // Mock connection status for testing
-    logger.update(connected, doc.as<JsonArray>());
   }
   else
   {
     server.send(400, "text/plain", "No data received");
   }
+}
+
+void trySendPendingBatches()
+{
+  static std::vector<SensorEntry> batchEntries;
+  static uint16_t batchIndex = 0;
+  static int attempt = 0;
+
+  if (!retryInProgress)
+  {
+    if (!logger.getOldestBatch(batchEntries, batchIndex))
+    {
+      return;
+    }
+    attempt = 0;
+    retryInProgress = true;
+  }
+
+  if (millis() - lastRetryTime < retryInterval)
+    return;
+  lastRetryTime = millis();
+  attempt++;
+
+  Serial.printf("Sending saved batch %d attempt %d/%d...\n", batchIndex, attempt, 3);
+
+  // Convert to JSON
+  StaticJsonDocument<2048> doc;
+  doc["timestamp"] = formatUnixTime(batchEntries[0].timestamp);
+  JsonArray dataArr = doc.createNestedArray("data");
+  for (const auto &entry : batchEntries)
+  {
+    JsonObject obj = dataArr.createNestedObject();
+    obj["t"] = entry.temperature;
+    obj["h"] = entry.humidity;
+    obj["err"] = entry.error;
+    obj["et"] = entry.errorType;
+  }
+
+  if (postToServer(dataArr))
+  {
+    Serial.println("Saved batch sent successfully, removing file");
+    String fname = logger.getBatchFilename(batchIndex);
+    LittleFS.remove(fname);
+    retryInProgress = false;
+    batchEntries.clear();
+    return;
+  }
+
+  if (attempt >= 3)
+  {
+    Serial.println("Batch send failed, will retry later");
+    retryInProgress = false;
+  }
+}
+
+// Send a batch to API - Example POST HTTP Request
+bool postToServer(JsonArray &arr)
+{
+  WiFiClient client;
+  if (!client.connect(host, port))
+  {
+    Serial.println("Connection to server failed");
+    return false;
+  }
+
+  StaticJsonDocument<1024> doc;
+  doc["timestamp"] = getTimeStamp();
+  doc["data"] = arr;
+
+  String jsonString;
+  serializeJson(doc, jsonString);
+
+  client.print(String("POST /data HTTP/1.1\r\n") +
+               "Host: " + host + "\r\n" +
+               "Content-Type: application/json\r\n" +
+               "Content-Length: " + jsonString.length() + "\r\n" +
+               "Connection: close\r\n\r\n" +
+               jsonString);
+
+  unsigned long timeout = millis();
+  while (client.connected() && millis() - timeout < 2000)
+  {
+    if (client.available())
+    {
+      String line = client.readStringUntil('\n');
+      if (line.startsWith("HTTP/1.1 200"))
+      {
+        client.stop();
+        return true;
+      }
+    }
+  }
+
+  client.stop();
+  Serial.println("No valid response from server");
+  return false;
 }

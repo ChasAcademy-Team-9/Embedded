@@ -5,7 +5,10 @@
 
 static std::vector<SensorData> batchBuffer;
 static unsigned long batchStartTime = 0;
+unsigned long batchSendInterval = 30000;
+
 extern Logger logger;
+extern TemperatureMode currentMode; 
 
 void batchSensorReadings(const SensorData &data)
 {
@@ -14,7 +17,7 @@ void batchSensorReadings(const SensorData &data)
     if (batchStartTime == 0)
         batchStartTime = millis();
 
-    if (millis() - batchStartTime >= 30000)
+    if (millis() - batchStartTime >= batchSendInterval)
     {
         String batchJson = createBatchJson(batchBuffer);
         sendDataToESP32(batchJson);
@@ -30,7 +33,7 @@ SensorData calculateMedian(std::vector<SensorData> &buffer)
 
     for (const auto &data : buffer)
     {
-        if (!data.error)
+        if (data.errorType != ErrorType::SENSOR_FAIL)
         {
             temps.push_back(data.temperature);
             hums.push_back(data.humidity);
