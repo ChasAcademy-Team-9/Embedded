@@ -6,6 +6,10 @@ extern Logger logger;
 
 bool wifiConnecting = false;
 unsigned long wifiConnectStart = 0;
+unsigned long lastRetrySendToESP32 = 0;
+unsigned long maxSendRetryTime = 2000;
+const uint8_t maxSendRetriesToESP32 = 3;
+uint8_t attemptToESP32Count = 0;
 
 #define MAX_FAILED_BATCHES 5
 FailedBatch failedBatches[MAX_FAILED_BATCHES];
@@ -36,34 +40,42 @@ void connectToESPAccessPointAsync()
     }
 }
 
+bool attemptSendBatch()
+{
+    return millis() - lastRetrySendToESP32 >= maxSendRetryTime;
+}
+
 void sendDataToESP32(std::vector<SensorData> &batch)
 {
-    const int maxRetries = 3;
     bool success = false;
 
-    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    if (attemptToESP32Count < maxSendRetriesToESP32)
     {
+        lastRetrySendToESP32 = millis();
+        attemptToESP32Count++;
+
         Serial.print("Sending batch attempt ");
-        Serial.print(attempt);
+        Serial.print(attemptToESP32Count);
         Serial.print("/");
-        Serial.print(maxRetries);
+        Serial.print(maxSendRetriesToESP32);
         Serial.println("...");
 
         if (postToESP32(batch))
         {
+            batch.clear();
+            batchStartTime = millis();
             success = true;
-            break;
+            attemptToESP32Count = 0;
+            return;
         }
 
         Serial.println("Send failed, retrying...");
-        delay(2000); // Wait before retrying
     }
 
-    if (!success)
+    if (!success && attemptToESP32Count >= maxSendRetriesToESP32)
     {
         Serial.println("ERROR: Batch send failed after 3 attempts.");
-        // Log error in EEPROM, optional
-        // logger.log("Batch send failed after 3 attempts");
+
         if (failedBatchCount < MAX_FAILED_BATCHES)
         {
             failedBatches[failedBatchCount++] = {batch, 1};
@@ -73,6 +85,9 @@ void sendDataToESP32(std::vector<SensorData> &batch)
         {
             Serial.println("Queue full, batch discarded");
         }
+        batch.clear();
+        batchStartTime = millis();
+        attemptToESP32Count = 0; // Reset counter
     }
 }
 
@@ -90,8 +105,8 @@ bool postToESP32(std::vector<SensorData> &batch)
         return false;
     }
 
-    uint32_t sendMillis = millis();  // tid för sändning
-    size_t totalSize = sizeof(sendMillis) + batch.size() * sizeof(SensorData); // Total storlek = 4 bytes sendMillis + n * sizeof(SensorData)
+    uint32_t sendMillis = millis();                                            // time of sending
+    size_t totalSize = sizeof(sendMillis) + batch.size() * sizeof(SensorData); // Total size = 4 bytes sendMillis + n * sizeof(SensorData)
 
     // Send HTTP POST request to the esp
     client.print(String("POST /data HTTP/1.1\r\n") +
@@ -100,10 +115,10 @@ bool postToESP32(std::vector<SensorData> &batch)
                  "Content-Length: " + totalSize + "\r\n" +
                  "Connection: close\r\n\r\n");
 
-    client.flush();
-    client.write((uint8_t *)&sendMillis, sizeof(sendMillis));// Skicka sendMillis först
-    client.write((uint8_t *)batch.data(), batch.size() * sizeof(SensorData));// Skicka alla SensorData
-    client.flush();
+    client.flush();                                                           // Ensure headers are sent before body
+    client.write((uint8_t *)&sendMillis, sizeof(sendMillis));                 // Send sendMillis first
+    client.write((uint8_t *)batch.data(), batch.size() * sizeof(SensorData)); // Send all SensorData
+    client.flush();                                                           // Ensure body is sent
 
     unsigned long timeout = millis();
     while (client.connected() && millis() - timeout < 2000)

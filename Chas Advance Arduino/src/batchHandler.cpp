@@ -3,13 +3,12 @@
 #include "wifiHandler.h"
 
 static std::vector<SensorData> batchBuffer;
-static unsigned long batchStartTime = 0;
 unsigned long batchSendInterval = 30000;
 
 extern Logger logger;
-extern TemperatureMode currentMode; 
+extern TemperatureMode currentMode;
 
-void batchSensorReadings(const SensorData &data)
+bool batchSensorReadings(const SensorData &data)
 {
     batchBuffer.push_back(data);
 
@@ -18,10 +17,9 @@ void batchSensorReadings(const SensorData &data)
 
     if (millis() - batchStartTime >= batchSendInterval)
     {
-        sendDataToESP32(batchBuffer);
-        batchBuffer.clear();
-        batchStartTime = millis();
+        return true; // Start to attempt sending the batch
     }
+    return false;
 }
 
 SensorData calculateMedian(std::vector<SensorData> &buffer)
