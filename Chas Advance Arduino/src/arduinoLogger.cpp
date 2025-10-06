@@ -137,40 +137,60 @@ void Logger::update(bool wifiConnected)
 {
     std::vector<SensorData> &batch = getBatchBuffer();
     if (batch.empty())
-    {
-        return; // No data to log
-    }
+        return;
 
+    unsigned long now = millis();
+    bool logNow = false;
+
+    // 1. Wi-Fi just disconnected -> log immediately
     if (!wifiConnected && !loggerActive)
     {
-        // Start logging
         loggerActive = true;
-        SensorData medianData = calculateMedian(batch);
-        logMedian(medianData);
-        timeSinceLog = millis();
+        logNow = true;
     }
-    else if (!wifiConnected && loggerActive)
+    // 2. Wi-Fi disconnected, continue logging every minute
+    else if (!wifiConnected && loggerActive && (now - timeSinceLog >= 60000))
     {
-        // Continue logging if 1 minute has passed
-        if (millis() - timeSinceLog >= 60000)
-        {
-            SensorData medianData = calculateMedian(batch);
-            logMedian(medianData);
-            timeSinceLog = millis();
-        }
+        logNow = true;
     }
+    // 3. Wi-Fi reconnected -> log once and stop logging
     else if (wifiConnected && loggerActive)
     {
-        // Log once and then stop logging
-        SensorData medianData = calculateMedian(batch);
-        logMedian(medianData);
+        logNow = true;
         loggerActive = false;
     }
+    if(logNow)
+    createLogFromBatch(batch, now);
+}
+
+void Logger::createLogFromBatch(std::vector<SensorData> &batch, unsigned long now)
+{
+        bool errorLogged = false;
+        for (auto &entry : batch)
+        {
+            if (entry.error)
+            {
+                // Log the first error found
+                log(String(entry.temperature) + "," +
+                    String(entry.humidity) + "," +
+                    String(static_cast<int>(entry.errorType)));
+                errorLogged = true;
+                break;
+            }
+        }
+
+        if (!errorLogged)
+        {
+            // No errors, log median
+            SensorData medianData = calculateMedian(batch);
+            logMedian(medianData);
+        }
+
+        timeSinceLog = now; // Reset timer
 }
 
 void Logger::logMedian(const SensorData &medianData)
 {
     log(String(medianData.temperature) + "," +
-        String(medianData.humidity) +
-        (medianData.error ? "1" : "0"));
+        String(medianData.humidity) + ",0");
 }

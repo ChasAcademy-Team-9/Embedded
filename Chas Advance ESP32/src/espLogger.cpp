@@ -134,19 +134,37 @@ void Logger::update(bool Connected, JsonArray arr)
     SensorData medianLog = calcMedian(arr);
     String timeStamp = getTimeStamp();
 
-    if(!Connected && !loggerActive)
+    if (!Connected && !loggerActive)
     {
         log("Server disconnected, starting logger");
         loggerActive = true;
     }
-    else if(!Connected && loggerActive)
+    else if (!Connected && loggerActive)
     {
         String logEntry = timeStamp + " Temp: " + String(medianLog.temperature, 2) + " C, Humidity: " + String(medianLog.humidity, 2) + " %";
         log(logEntry);
     }
-    else if(Connected && loggerActive)
+    else if (Connected && loggerActive)
     {
         log("Server connected, stopping logger");
         loggerActive = false;
+    }
+
+    if (loggerActive)
+    {
+        for (JsonObject obj : arr)
+        {
+            int errorTypeInt = obj["errorType"] | 0;
+            ErrorType errorType = static_cast<ErrorType>(errorTypeInt);
+            bool error = obj["error"] | false;
+            if (error)
+            {
+                String logEntry = timeStamp + " T: " +
+                                  String(medianLog.temperature, 2) + " C, H: " +
+                                  String(medianLog.humidity, 2) + " % Err: " + String(errorTypeInt);
+                log(logEntry);
+                break; // Log only once per batch if any error is found
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include "sensorData.h"
+#include <vector>
 
 // ==== CONFIG ====
 #define LOGGER_MAX_ENTRIES 64 // total number of logs in EEPROM
@@ -24,7 +25,7 @@ public:
     void clearAll();
     void update(bool wifiConnected);
     void logMedian(const SensorData &medianData);
-
+    void createLogFromBatch(std::vector<SensorData> &batch, unsigned long now);    
     bool loggerActive;
 
 private:
