@@ -63,7 +63,7 @@ void sendDataToESP32(std::vector<SensorData> &batch)
         if (postToESP32(batch))
         {
             batch.clear();
-            batchStartTime = millis();
+            resetBatchTimer();
             success = true;
             attemptToESP32Count = 0;
             return;
@@ -74,19 +74,15 @@ void sendDataToESP32(std::vector<SensorData> &batch)
 
     if (!success && attemptToESP32Count >= maxSendRetriesToESP32)
     {
-        Serial.println("ERROR: Batch send failed after 3 attempts.");
+        Serial.println("ERROR: Batch send failed after 3 attempts. Logging median");
+        SensorData data = calculateMedian(batch);
+        data.errorType = ErrorType::WiFi_FAIL;
+        logger.log(String(data.temperature) + "," +
+                   String(data.humidity) + "," +
+                   String(static_cast<int>(data.errorType)));
 
-        if (failedBatchCount < MAX_FAILED_BATCHES)
-        {
-            failedBatches[failedBatchCount++] = {batch, 1};
-            Serial.println("Batch queued for later retry");
-        }
-        else
-        {
-            Serial.println("Queue full, batch discarded");
-        }
         batch.clear();
-        batchStartTime = millis();
+        resetBatchTimer();
         attemptToESP32Count = 0; // Reset counter
     }
 }
@@ -138,40 +134,6 @@ bool postToESP32(std::vector<SensorData> &batch)
     Serial.println("No valid response from ESP32");
     client.stop();
     return false;
-}
-
-void retryFailedBatches()
-{
-    for (int i = 0; i < failedBatchCount; i++)
-    {
-        FailedBatch &batch = failedBatches[i];
-        if (postToESP32(batch.batch))
-        {
-            Serial.println("Retry succeeded for batch");
-            // Remove batch from queue
-            for (int j = i; j < failedBatchCount - 1; j++)
-                failedBatches[j] = failedBatches[j + 1];
-            failedBatchCount--; // Reduce batches by one
-            i--;                // adjust index
-        }
-        else
-        {
-            batch.retries++;
-            if (batch.retries >= 3)
-            {
-                Serial.println("Retry limit reached, discarding batch");
-                SensorData data = calculateMedian(batch.batch);
-                data.errorType = ErrorType::WiFi_FAIL;
-                logger.log(String(data.temperature) + "," +
-                           String(data.humidity) + "," +
-                           String(static_cast<int>(data.errorType)));
-                for (int j = i; j < failedBatchCount - 1; j++)
-                    failedBatches[j] = failedBatches[j + 1];
-                failedBatchCount--;
-                i--;
-            }
-        }
-    }
 }
 
 void updateLogger()

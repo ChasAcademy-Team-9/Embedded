@@ -14,8 +14,6 @@ DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
 TemperatureMode currentMode = ROOM_TEMP; // Default mode
 
-std::vector<SensorData> batchBuffer;
-
 void setup()
 {
   Serial.begin(115200);
@@ -52,12 +50,12 @@ void loop()
 
   if (batchSensorReadings(data) && attemptSendBatch())
   {
-    sendDataToESP32(batchBuffer);
+    sendDataToESP32(getBatchBuffer());
   }
 
   logSensorData(data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
 
-  retryFailedBatches();
+  // retryFailedBatches();
 
   delay(3000);
 }

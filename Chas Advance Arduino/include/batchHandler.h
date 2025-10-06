@@ -11,9 +11,9 @@ struct FailedBatch
     uint8_t retries;
 };
 
-static unsigned long batchStartTime = 0;
-
 bool batchSensorReadings(const SensorData &data);
 SensorData calculateMedian(std::vector<SensorData> &buffer);
 std::vector<SensorData> &getBatchBuffer();
+void resetBatchTimer();
+
 #endif
