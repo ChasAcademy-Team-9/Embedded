@@ -7,7 +7,8 @@ enum ErrorType {
     NONE = 0,
     TOO_LOW = 1,
     TOO_HIGH = 2,
-    SENSOR_FAIL = 4
+    SENSOR_FAIL = 4,
+    WiFi_FAIL = 5
 };
 
 
