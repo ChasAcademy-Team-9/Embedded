@@ -14,8 +14,6 @@ DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
 TemperatureMode currentMode = ROOM_TEMP; // Default mode
 
-std::vector<SensorData> batchBuffer;
-
 void setup()
 {
   Serial.begin(115200);
@@ -37,7 +35,7 @@ void loop()
   float humidity = dht.readHumidity();
   bool error = false;
 
-  SensorData data = {millis(),temperature, humidity, error, NONE};
+  SensorData data = {millis(), temperature, humidity, error, NONE};
   if (isnan(humidity) || isnan(temperature))
   {
     data.error = true;
@@ -50,10 +48,13 @@ void loop()
   connectToESPAccessPointAsync();
   updateLogger();
 
-  batchSensorReadings(data);
+  if (batchSensorReadings(data) && attemptSendBatch())
+  {
+    sendDataToESP32(getBatchBuffer());
+  }
+
   logSensorData(data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
 
-  retryFailedBatches();
-  
+
   delay(3000);
 }

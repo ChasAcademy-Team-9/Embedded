@@ -9,9 +9,9 @@ extern bool wifiConnecting;
 extern unsigned long wifiConnectStart;
 
 void connectToESPAccessPointAsync();
-void sendDataToESP32(std::vector<SensorData>& batch);
-bool postToESP32(std::vector<SensorData>& batch);
-void retryFailedBatches();
+bool attemptSendBatch();
+void sendDataToESP32(std::vector<SensorData> &batch);
+bool postToESP32(std::vector<SensorData> &batch);
 void updateLogger();
 
 #endif // WIFIHANDLER_H
