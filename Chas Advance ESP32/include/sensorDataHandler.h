@@ -8,10 +8,11 @@
 
 struct SensorData
 {
-    float temperature;
-    float humidity;
-    bool error;
-    ErrorType errorType;
+    uint32_t timestamp;   /**< Unix timestamp of the sensor reading */
+    float temperature;    /**< Temperature value */
+    float humidity;       /**< Humidity value */
+    bool error;           /**< Whether there was an error in this reading */
+    uint8_t errorType;    /**< Type of error, if any */
 };
 
 float median(std::vector<float>& values);

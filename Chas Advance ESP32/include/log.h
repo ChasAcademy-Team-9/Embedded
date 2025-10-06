@@ -22,6 +22,7 @@ void logStartup();
 void checkDataTimeout(unsigned long &timeSinceDataReceived);
 String getTimeStamp();
 String formatUnixTime(uint32_t ts);
+uint32_t timestampStringToUnix(const String &tsStr);
 
 
 #endif

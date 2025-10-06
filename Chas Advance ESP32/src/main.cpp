@@ -14,6 +14,8 @@ void setup()
   Serial.print("Reset reason: ");
   Serial.println(esp_reset_reason());
 
+  initWifi();
+
   //Initialize logger
   logger.begin();
   logStartup();
@@ -22,15 +24,12 @@ void setup()
   // Print all previous log entries
   logger.printBatches();
   logger.printErrors();
-
-  initWifi();
 }
 
 void loop()
 {
   checkDataTimeout(timeSinceDataReceived);
-  server.handleClient();
+  handleClient();
   trySendPendingBatches();
-  delay(1000);
 }
 

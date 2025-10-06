@@ -17,13 +17,23 @@ void setupAccessPoint();
 // Sets up the HTTP server to handle incoming requests
 void setupHttpServer();
 // Handles incoming POST requests to /data
-void handlePostRequest();
+void handlePostRequestBinary(WiFiClient& client);
+void handleClient();
+// POST request helpers
+bool isValidPostRequest(WiFiClient &client, const String &requestLine);
+int readContentLength(WiFiClient &client);
+bool readRequestBody(WiFiClient &client, std::vector<uint8_t> &buffer, int contentLength);
+bool parseBatch(const std::vector<uint8_t> &buffer, uint32_t &sendMillis, std::vector<SensorData> &batch);
+void respond(WiFiClient &client, int code); 
+
 // Retry sending saved batches
 void trySendPendingBatches();
-// Send a batch to API
-bool postToServer(JsonArray &arr);
+bool sendJsonToServer(const String &jsonString);
+bool postBatchToServer(const std::vector<SensorData> &batch);
+void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batch);
+
 
 extern unsigned long timeSinceDataReceived;
-extern WebServer server; // Server listen to port 80
+extern WiFiServer server; // Server listen to port 80
 
 #endif

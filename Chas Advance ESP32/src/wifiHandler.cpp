@@ -3,7 +3,7 @@
 #include "espLogger.h"
 
 unsigned long timeSinceDataReceived = 0;
-WebServer server;
+WiFiServer server;
 extern ESPLogger logger;
 
 // API batch send variables
@@ -49,59 +49,137 @@ void setupAccessPoint()
 void setupHttpServer()
 {
   // Define route
-  server.on("/data", HTTP_POST, [&]()
-            { handlePostRequest(); });
-
   server.begin(80);
   Serial.println("HTTP server started");
 }
 
-/* Function to handle POST requests to /data
-    It reads the JSON body, parses it, and logs the sensor data.*/
-void handlePostRequest()
+// --- Helpers ---
+
+// Check that the request line starts with "POST /data"
+// If not, return 404 and close connection
+bool isValidPostRequest(WiFiClient &client, const String &requestLine) {
+    if (!requestLine.startsWith("POST /data")) {
+        client.println("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+        client.stop();
+        return false;
+    }
+    return true;
+}
+
+// Read HTTP headers and extract the Content-Length value
+// Returns -1 if not found
+int readContentLength(WiFiClient &client) {
+    int contentLength = -1;
+    while (client.connected()) {
+        String line = client.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0) break; // empty line means end of headers
+        if (line.startsWith("Content-Length:")) {
+            contentLength = line.substring(15).toInt();
+        }
+    }
+    return contentLength;
+}
+
+// Read the binary body of the request into a buffer
+// Returns true if exactly contentLength bytes were read
+bool readRequestBody(WiFiClient &client, std::vector<uint8_t> &buffer, int contentLength) {
+    buffer.resize(contentLength);
+    int bytesRead = 0;
+    unsigned long start = millis();
+
+    // Keep reading until all bytes received or 3s timeout
+    while (bytesRead < contentLength && millis() - start < 3000) {
+        if (client.available()) {
+            bytesRead += client.read(buffer.data() + bytesRead, contentLength - bytesRead);
+        }
+    }
+    return bytesRead == contentLength;
+}
+
+// Parse the binary buffer into sendMillis + SensorData entries
+// Returns false if the payload is invalid
+bool parseBatch(const std::vector<uint8_t> &buffer, uint32_t &sendMillis, std::vector<SensorData> &batch) {
+    if (buffer.size() < sizeof(sendMillis)) return false;
+
+    // Extract sendMillis (first 4 bytes)
+    memcpy(&sendMillis, buffer.data(), sizeof(sendMillis));
+
+    // Remaining data should be a multiple of SensorData struct size
+    size_t dataSize = buffer.size() - sizeof(sendMillis);
+    if (dataSize % sizeof(SensorData) != 0) return false;
+
+    // Copy SensorData entries into batch vector
+    batch.resize(dataSize / sizeof(SensorData));
+    memcpy(batch.data(), buffer.data() + sizeof(sendMillis), dataSize);
+    return true;
+}
+
+// Send an HTTP response and close the connection
+// 200 = OK, anything else = Bad Request
+void respond(WiFiClient &client, int code) {
+    if (code == 200) {
+        client.println("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
+    } else {
+        client.printf("HTTP/1.1 %d Bad Request\r\nConnection: close\r\n\r\n", code);
+    }
+    client.stop();
+}
+
+// --- Main handler ---
+
+// Handle an incoming HTTP POST request with binary body
+void handlePostRequestBinary(WiFiClient &client) {
+    if (!client.connected()) return;
+
+    // Step 1: Read and validate the request line
+    String requestLine = client.readStringUntil('\n');
+    requestLine.trim();
+    if (!isValidPostRequest(client, requestLine)) return;
+
+    // Step 2: Read headers and extract Content-Length
+    int contentLength = readContentLength(client);
+    if (contentLength <= 0) { respond(client, 400); return; }
+
+    // Step 3: Read the binary body into buffer
+    std::vector<uint8_t> buffer;
+    if (!readRequestBody(client, buffer, contentLength)) { respond(client, 400); return; }
+
+    // Step 4: Parse sendMillis + SensorData entries
+    uint32_t sendMillis;
+    std::vector<SensorData> batch;
+    if (!parseBatch(buffer, sendMillis, batch)) { respond(client, 400); return; }
+
+    // Step 5: Add timestamps and log entries
+    assignAbsoluteTimestamps(sendMillis, batch);
+    Serial.printf("Received batch with %d entries\n", batch.size());
+    for (const auto &entry : batch) {
+        logSensorData(formatUnixTime(entry.timestamp), entry.temperature, entry.humidity, static_cast<ErrorType>(entry.errorType));
+    }
+
+    timeSinceDataReceived = 0; // reset watchdog
+    respond(client, 200);      // Step 6: Send OK back to client
+
+    // Step 7: Try to forward batch to backend, otherwise store in flash
+    if (!postBatchToServer(batch)) {
+        Serial.println("Failed to send batch to backend server - saving in flash");
+        logger.logBatch(batch);
+    }
+}
+
+
+void handleClient()
 {
-  if (server.hasArg("plain"))
-  { // "plain" contains POST body
-    String body = server.arg("plain");
-
-    StaticJsonDocument<2048> doc;
-    DeserializationError error = deserializeJson(doc, body);
-
-    if (error)
-    {
-      Serial.print("JSON parse error: ");
-      Serial.println(error.c_str());
-      server.send(400, "text/plain", "Bad JSON");
-      return;
-    }
-
-    if (!doc.is<JsonArray>())
-    {
-      server.send(400, "text/plain", "Expected JSON array");
-      return;
-    }
-    JsonArray arr = doc.as<JsonArray>();
-    // Send batch to API
-    if (!postToServer(arr))
-    {
-      // failed - Log to flash
-      Serial.print("Failed to send new batch to server - saving in flash \n");
-      logger.logBatch(arr);
-    }
-
-    parseJsonArray(arr, getTimeStamp());
-    server.send(200, "text/plain", "OK");
-    timeSinceDataReceived = millis();
-  }
-  else
+  WiFiClient client = server.available();
+  if (client)
   {
-    server.send(400, "text/plain", "No data received");
+    handlePostRequestBinary(client);
   }
 }
 
 void trySendPendingBatches()
 {
-  static std::vector<SensorEntry> batchEntries;
+  static std::vector<SensorData> batchEntries;
   static uint16_t batchIndex = 0;
   static int attempt = 0;
 
@@ -122,20 +200,7 @@ void trySendPendingBatches()
 
   Serial.printf("Sending saved batch %d attempt %d/%d...\n", batchIndex, attempt, 3);
 
-  // Convert to JSON
-  StaticJsonDocument<2048> doc;
-  doc["timestamp"] = formatUnixTime(batchEntries[0].timestamp);
-  JsonArray dataArr = doc.createNestedArray("data");
-  for (const auto &entry : batchEntries)
-  {
-    JsonObject obj = dataArr.createNestedObject();
-    obj["t"] = entry.temperature;
-    obj["h"] = entry.humidity;
-    obj["err"] = entry.error;
-    obj["et"] = entry.errorType;
-  }
-
-  if (postToServer(dataArr))
+  if (postBatchToServer(batchEntries))
   {
     Serial.println("Saved batch sent successfully, removing file");
     String fname = logger.getBatchFilename(batchIndex);
@@ -153,7 +218,7 @@ void trySendPendingBatches()
 }
 
 // Send a batch to API - Example POST HTTP Request
-bool postToServer(JsonArray &arr)
+bool sendJsonToServer(const String &jsonString)
 {
   WiFiClient client;
   if (!client.connect(host, port))
@@ -161,13 +226,6 @@ bool postToServer(JsonArray &arr)
     Serial.println("Connection to server failed");
     return false;
   }
-
-  StaticJsonDocument<1024> doc;
-  doc["timestamp"] = getTimeStamp();
-  doc["data"] = arr;
-
-  String jsonString;
-  serializeJson(doc, jsonString);
 
   client.print(String("POST /data HTTP/1.1\r\n") +
                "Host: " + host + "\r\n" +
@@ -193,4 +251,43 @@ bool postToServer(JsonArray &arr)
   client.stop();
   Serial.println("No valid response from server");
   return false;
+}
+
+// High-level function to post a batch
+bool postBatchToServer(const std::vector<SensorData> &batch)
+{
+  if (batch.empty())
+  {
+    Serial.println("Batch is empty, not sending.");
+    return false;
+  }
+
+  String jsonString = serializeBatchToJson(batch);
+  return sendJsonToServer(jsonString);
+}
+
+void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batch)
+{
+    if (batch.empty()) return;
+
+    // ESP32 current Unix time (seconds)
+    uint32_t now = timestampStringToUnix(getTimeStamp());
+
+    // Last measurement
+    SensorData &latest = batch.back();
+    uint32_t lastMeasurementMillis = latest.timestamp; // Arduino millis of last measurement
+
+    // How long since last measurement until batch was sent
+    uint32_t delayMs = (sendMillis >= lastMeasurementMillis) ? (sendMillis - lastMeasurementMillis) : 0;
+
+    // Absolute Unix time of last measurement
+    uint32_t lastMeasurementUnix = now - (delayMs / 1000);
+    latest.timestamp = lastMeasurementUnix;
+
+    // Walk backwards for previous entries
+    for (int i = batch.size() - 2; i >= 0; i--)
+    {
+        uint32_t deltaMs = lastMeasurementMillis - batch[i].timestamp; // millis between measurements
+        batch[i].timestamp = lastMeasurementUnix - (deltaMs / 1000);
+    }
 }
