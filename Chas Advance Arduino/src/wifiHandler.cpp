@@ -74,7 +74,9 @@ void sendDataToESP32(std::vector<SensorData> &batch)
 
     if (!success && attemptToESP32Count >= maxSendRetriesToESP32)
     {
-        Serial.println("ERROR: Batch send failed after 3 attempts. Logging median");
+        Serial.print("ERROR: Batch send failed after ");
+        Serial.print(maxSendRetriesToESP32);
+        Serial.println(" attempts. Logging median");
         SensorData data = calculateMedian(batch);
         data.errorType = ErrorType::WiFi_FAIL;
         logger.log(String(data.temperature) + "," +
