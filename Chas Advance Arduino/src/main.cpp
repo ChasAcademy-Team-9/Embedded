@@ -55,7 +55,6 @@ void loop()
 
   logSensorData(data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
 
-  // retryFailedBatches();
 
   delay(3000);
 }
