@@ -1,170 +1,158 @@
 #include "espLogger.h"
-#include <Preferences.h>
-#include "sensorDataHandler.h"
-#include "log.h"
 
-// Create a global Preferences object for ESP32 non-volatile storage
-Preferences prefs;
+ESPLogger::ESPLogger() {}
 
-// Constructor initializes internal buffer counters
-Logger::Logger() : head(0), count(0) {}
-
-// Initialize the logger
-void Logger::begin()
+void ESPLogger::begin()
 {
-    Serial.println("Logger init for ESP32");
-
-    loggerActive = false;
-    // Open the "logger" namespace in Preferences
-    // false = read/write mode
-    prefs.begin("logger", false);
-
-    // Optional: clear all logs in NVS for testing
-    // prefs.clear();
-
-    // Load existing logs from flash into RAM buffer
-    load();
-}
-
-// Add a new log entry
-void Logger::log(const String &msg)
-{
-    Serial.println("Logging on ESP32: " + msg);
-    // Copy the String message into the fixed-size char buffer
-    // Truncate if longer than LOGGER_MSG_LENGTH - 1
-    msg.substring(0, LOGGER_MSG_LENGTH - 1).toCharArray(buffer[head], LOGGER_MSG_LENGTH);
-
-    // Advance the head pointer (circular buffer)
-    head = (head + 1) % LOGGER_MAX_ENTRIES;
-
-    // Increase count until it reaches max entries
-    if (count < LOGGER_MAX_ENTRIES)
-        count++;
-
-    // Persist only the latest entry and update metadata
-    saveLastEntry();
-}
-
-// Print all stored logs to Serial in order from oldest to newest
-void Logger::printAll()
-{
-    Serial.println("---- Log start ----");
-    for (size_t i = 0; i < count; i++)
+    if (!LittleFS.begin(true))
     {
-        Serial.println(getEntry(i));
+        Serial.println("LittleFS mount failed");
     }
-    Serial.println("---- Log end ----");
-}
-
-// Retrieve a single log entry by index (0 = oldest)
-String Logger::getEntry(size_t index)
-{
-    if (index >= count)
-        return ""; // Return empty if index is out of bounds
-
-    // Calculate the real index in the circular buffer
-    size_t realIndex = (head + LOGGER_MAX_ENTRIES - count + index) % LOGGER_MAX_ENTRIES;
-
-    // Convert char array to String for ease of use
-    return String(buffer[realIndex]);
-}
-
-// Return the number of log entries currently stored
-size_t Logger::size()
-{
-    return count;
-}
-
-// Load logs from non-volatile storage into RAM buffer
-void Logger::load()
-{
-    // Read stored count and head from Preferences
-    count = prefs.getUInt("count", 0);
-    if (count > LOGGER_MAX_ENTRIES)
-        count = LOGGER_MAX_ENTRIES; // Ensure we don't exceed buffer
-
-    head = prefs.getUInt("head", 0);
-
-    // Load each stored log into RAM buffer
-    for (size_t i = 0; i < count; i++)
+    else
     {
-        String s = prefs.getString(("log" + String(i)).c_str(), ""); // default to empty
-        s.toCharArray(buffer[i], LOGGER_MSG_LENGTH);                 // store as fixed-size char array
+        Serial.println("LittleFS mounted successfully");
     }
 }
 
-// Persist only the most recently added entry to Preferences
-void Logger::saveLastEntry()
+// -------- Error logging --------
+void ESPLogger::logError(const String &msg)
 {
-    // Save metadata: total count and head pointer
-    prefs.putUInt("count", count);
-    prefs.putUInt("head", head);
-
-    // Calculate index of the last added log (circular buffer)
-    size_t lastIndex = (head + LOGGER_MAX_ENTRIES - 1) % LOGGER_MAX_ENTRIES;
-
-    // Save only the latest log entry to NVS
-    prefs.putString(("log" + String(lastIndex)).c_str(), buffer[lastIndex]);
-}
-
-// Clear all logs from RAM and non-volatile storage
-void Logger::clearAll()
-{
-    for (size_t i = 0; i < count; i++)
+    File f = LittleFS.open(ERROR_FILE, FILE_APPEND);
+    if (!f)
     {
-        // Remove each log key from Preferences
-        prefs.remove(("log" + String(i)).c_str());
-
-        // Clear the RAM buffer
-        memset(buffer[i], 0, LOGGER_MSG_LENGTH);
+        Serial.println("Failed to open error log");
+        return;
     }
 
-    // Reset counters
-    count = 0;
-    head = 0;
-
-    // Update metadata in Preferences
-    prefs.putUInt("count", count);
-    prefs.putUInt("head", head);
-}
-
-void Logger::update(bool Connected, JsonArray arr)
-{
-    // Compute median of the entire array
-    SensorData medianLog = calcMedian(arr);
     String timeStamp = getTimeStamp();
+    f.printf("%s | %s\n", timeStamp.c_str(), msg.c_str());
+    f.close();
+}
 
-    if (!Connected && !loggerActive)
+// Batch logging
+void ESPLogger::logBatch(JsonArray arr)
+{
+    // Check number of batches
+    size_t n = countBatches();
+    if (n >= MAX_BATCHES)
     {
-        log("Server disconnected, starting logger");
-        loggerActive = true;
-    }
-    else if (!Connected && loggerActive)
-    {
-        String logEntry = timeStamp + " Temp: " + String(medianLog.temperature, 2) + " C, Humidity: " + String(medianLog.humidity, 2) + " %";
-        log(logEntry);
-    }
-    else if (Connected && loggerActive)
-    {
-        log("Server connected, stopping logger");
-        loggerActive = false;
+        // Remove oldest - circular buffering
+        removeOldestBatch();
     }
 
-    if (loggerActive)
+    File f = LittleFS.open(BATCH_FILE, FILE_APPEND);
+    if (!f)
     {
-        for (JsonObject obj : arr)
-        {
-            int errorTypeInt = obj["errorType"] | 0;
-            ErrorType errorType = static_cast<ErrorType>(errorTypeInt);
-            bool error = obj["error"] | false;
-            if (error)
-            {
-                String logEntry = timeStamp + " T: " +
-                                  String(medianLog.temperature, 2) + " C, H: " +
-                                  String(medianLog.humidity, 2) + " % Err: " + String(errorTypeInt);
-                log(logEntry);
-                break; // Log only once per batch if any error is found
-            }
-        }
+        Serial.println("Failed to open batch log");
+        return;
     }
+
+    StaticJsonDocument<1024> doc;
+    doc["timestamp"] = getTimeStamp();
+    JsonArray data = doc.createNestedArray("data");
+
+    for (JsonObject obj : arr)
+    {
+        JsonObject e = data.createNestedObject();
+        e["t"] = obj["temperature"] | 0.0;
+        e["h"] = obj["humidity"] | 0.0;
+        e["err"] = obj["error"] | false;
+        e["et"] = obj["errorType"] | 0;
+    }
+
+    String jsonStr;
+    serializeJson(doc, jsonStr);
+
+    f.println(jsonStr);
+    f.close();
+}
+
+void ESPLogger::printBatches()
+{
+    File f = LittleFS.open(BATCH_FILE, FILE_READ);
+    if (!f)
+    {
+        Serial.println("No batch log found");
+        return;
+    }
+    Serial.println("---- Batch log start ----");
+    while (f.available())
+    {
+        Serial.println(f.readStringUntil('\n'));
+    }
+    Serial.println("---- Batch log end ----");
+    f.close();
+}
+
+void ESPLogger::printErrors()
+{
+    File f = LittleFS.open(ERROR_FILE, FILE_READ);
+    if (!f)
+    {
+        Serial.println("No Error log found");
+        return;
+    }
+    Serial.println("---- Error log start ----");
+    while (f.available())
+    {
+        Serial.println(f.readStringUntil('\n'));
+    }
+    Serial.println("---- Error log end ----");
+    f.close();
+}
+
+bool ESPLogger::getOldestBatch(String &out)
+{
+    File f = LittleFS.open(BATCH_FILE, FILE_READ);
+    if (!f)
+        return false;
+
+    out = f.readStringUntil('\n');
+    f.close();
+    return out.length() > 0;
+}
+
+void ESPLogger::removeOldestBatch()
+{
+    File f = LittleFS.open(BATCH_FILE, FILE_READ);
+    if (!f)
+        return;
+
+    String rest = "";
+    f.readStringUntil('\n'); // Skip first line
+    while (f.available())
+    {
+        rest += f.readStringUntil('\n') + "\n"; // Save every line
+    }
+    f.close();
+
+    File fw = LittleFS.open(BATCH_FILE, FILE_WRITE);
+    fw.print(rest); // Write all lines except first(oldest)
+    fw.close();
+}
+
+// Utils
+void ESPLogger::clearErrors()
+{
+    LittleFS.remove(ERROR_FILE);
+}
+
+void ESPLogger::clearBatches()
+{
+    LittleFS.remove(BATCH_FILE);
+}
+
+size_t ESPLogger::countBatches()
+{
+    File f = LittleFS.open(BATCH_FILE, FILE_READ);
+    if (!f)
+        return 0;
+    size_t n = 0;
+    while (f.available())
+    {
+        f.readStringUntil('\n');
+        n++;
+    }
+    f.close();
+    return n;
 }

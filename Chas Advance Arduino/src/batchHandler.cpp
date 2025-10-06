@@ -5,6 +5,8 @@
 
 static std::vector<SensorData> batchBuffer;
 static unsigned long batchStartTime = 0;
+unsigned long batchSendInterval = 30000;
+
 extern Logger logger;
 extern TemperatureMode currentMode; 
 
@@ -15,7 +17,7 @@ void batchSensorReadings(const SensorData &data)
     if (batchStartTime == 0)
         batchStartTime = millis();
 
-    if (millis() - batchStartTime >= 30000)
+    if (millis() - batchStartTime >= batchSendInterval)
     {
         String batchJson = createBatchJson(batchBuffer);
         sendDataToESP32(batchJson);
