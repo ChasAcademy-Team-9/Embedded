@@ -28,10 +28,9 @@ void respond(WiFiClient &client, int code);
 
 // Retry sending saved batches
 void trySendPendingBatches();
-bool sendJsonToServer(const String &jsonString);
-bool postBatchToServer(const std::vector<SensorData> &batch);
+bool sendJsonToServer(const String &jsonString, int batchId);
+bool postBatchToServer(const std::vector<SensorData> &batch, int batchID);
 void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batch);
-
 
 extern unsigned long timeSinceDataReceived;
 extern WiFiServer server; // Server listen to port 80

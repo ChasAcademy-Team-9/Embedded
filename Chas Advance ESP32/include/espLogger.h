@@ -19,6 +19,13 @@ struct Batch
     uint32_t crc32; /**< CRC of timestamp + numEntries + entries */
 };
 
+struct SendStatusEntry {
+    uint32_t timestamp;     // Unix time or millis()
+    int32_t batchId;        // Batch ID
+    bool success;           // true = OK, false = FAIL
+    char message[40];      // Fixed-length message (null-terminated)
+};
+
 /**
  * @brief ESPLogger handles error logging and batch sensor logging to LittleFS.
  */
@@ -29,12 +36,11 @@ public:
     ESPLogger();
 
     /**
-     * @brief Initializes LittleFS filesystem and prints status to Serial.
+     * @brief Initializes LittleFS filesystem and prints status to Serial.  
      */
     void begin();
 
     // -------- Error logging --------
-    
     /**
      * @brief Logs an error message to the error file with timestamp.
      * @param msg Error message string.
@@ -52,7 +58,6 @@ public:
     void clearErrors();
 
     // -------- Batch logging --------
-    
     /**
      * @brief Logs a batch of sensor readings to LittleFS.
      * @param arr JSON array of sensor objects (must contain temperature, humidity, error, errorType)
@@ -73,6 +78,14 @@ public:
     bool getOldestBatch(std::vector<SensorData> &outEntries, uint16_t &batchIndex);
 
     /**
+     * @brief Retrieves the newest valid batch from storage.
+     * @param outEntries Vector to store sensor entries.
+     * @param batchIndex Index of the batch file.
+     * @return True if a valid batch was retrieved, false otherwise.
+     */
+    bool getNewestBatch(std::vector<SensorData> &outEntries, uint16_t &batchIndex);
+
+    /**
      * @brief Removes the oldest batch file from storage.
      */
     void removeOldestBatch();
@@ -82,8 +95,17 @@ public:
      */
     void clearBatches();
 
+    /**
+     * @brief Log send status of a batch 
+     */
+    void logSendStatus(int batchId, bool success, const String &message);
+
+    /**
+     * @brief Print send status logs to Serial
+     */
+    void printSendStatusLogs();
+
     // -------- Batch file utilities --------
-    
     /**
      * @brief Generates the filename for a batch index.
      * @param index Batch index number.
@@ -110,15 +132,6 @@ public:
      * @param entries Vector of SensorEntry objects.
      */
     void printEntries(const std::vector<SensorData> &entries);
-
-    // -------- Timestamp utilities --------
-    
-    /**
-     * @brief Converts a timestamp string into a Unix timestamp.
-     * @param tsStr Timestamp string (format: "YYYY-MM-DD HH:MM:SS").
-     * @return Unix timestamp (seconds since 1970).
-     */
-    uint32_t timestampStringToUnix(const String &tsStr);
 
 private:
     const char *ERROR_FILE = "/errors.txt";  /**< Path to error log file */

@@ -145,6 +145,25 @@ bool ESPLogger::getOldestBatch(std::vector<SensorData> &outEntries, uint16_t &ba
     return true;
 }
 
+bool ESPLogger::getNewestBatch(std::vector<SensorData> &outEntries, uint16_t &batchIndex)
+{
+    auto indices = getBatchIndices();
+    if (indices.empty())
+        return false;
+
+    batchIndex = indices.back(); // newest batch
+    String fname = getBatchFilename(batchIndex);
+
+    if (!readBatchFile(fname, outEntries))
+    {
+        Serial.printf("Batch %s is corrupted, removing file\n", fname.c_str());
+        LittleFS.remove(fname);
+        return false;
+    }
+
+    return true;
+}
+
 void ESPLogger::removeOldestBatch()
 {
     auto indices = getBatchIndices();
@@ -166,6 +185,71 @@ void ESPLogger::clearBatches()
         LittleFS.remove(fname);
     }
 }
+
+void ESPLogger::logSendStatus(int batchId, bool success, const String &message)
+{
+    if (batchId < 0) return;
+
+    const size_t MAX_LOG_SIZE = 10 * 1024; // 10 KB max
+    const char *filename = "/send_status.bin";
+
+    // Check log size
+    if (LittleFS.exists(filename)) {
+        File check = LittleFS.open(filename, FILE_READ);
+        if (check && check.size() > MAX_LOG_SIZE) {
+            check.close();
+            Serial.println("Send status log too large, clearing...");
+            LittleFS.remove(filename);
+        } else {
+            check.close();
+        }
+    }
+
+    File f = LittleFS.open(filename, FILE_APPEND);
+    if (!f) {
+        Serial.println("Failed to open send status log");
+        return;
+    }
+
+    SendStatusEntry rec;
+    rec.timestamp = timestampStringToUnix(getTimeStamp()); // Replace with real timestamp if available
+    rec.batchId = batchId;
+    rec.success = success;
+
+    // Copy message safely (truncate if needed)
+    strncpy(rec.message, message.c_str(), sizeof(rec.message) - 1);
+    rec.message[sizeof(rec.message) - 1] = '\0';
+
+    // Write binary struct
+    f.write(reinterpret_cast<const uint8_t*>(&rec), sizeof(rec));
+    f.close();
+}
+
+void ESPLogger::printSendStatusLogs()
+{
+    const char *filename = "/send_status.bin";
+    File f = LittleFS.open(filename, FILE_READ);
+    if (!f) {
+        Serial.println("No send status log found");
+        return;
+    }
+
+    Serial.println("---- Send Status Log Start ----");
+    SendStatusEntry rec;
+
+    while (f.available() >= sizeof(SendStatusEntry)) {
+        f.read(reinterpret_cast<uint8_t*>(&rec), sizeof(rec));
+        Serial.printf("Time:%s | Batch:%d | Status:%s | %s\n",
+                      formatUnixTime(rec.timestamp).c_str(),
+                      rec.batchId,
+                      rec.success ? "OK" : "FAIL",
+                      rec.message);
+    }
+
+    Serial.println("---- Send Status Log End ----");
+    f.close();
+}
+
 
 // -------- Batch file utilities --------
 String ESPLogger::getBatchFilename(uint16_t index)

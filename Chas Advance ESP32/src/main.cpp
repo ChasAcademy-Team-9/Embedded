@@ -24,6 +24,7 @@ void setup()
   // Print all previous log entries
   logger.printBatches();
   logger.printErrors();
+  logger.printSendStatusLogs();
 }
 
 void loop()
