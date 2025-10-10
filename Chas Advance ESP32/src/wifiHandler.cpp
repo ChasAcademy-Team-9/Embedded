@@ -161,11 +161,11 @@ void handlePostRequestBinary(WiFiClient &client) {
     respond(client, 200);      // Step 6: Send OK back to client
 
     // Step 7: Try to forward batch to backend, otherwise store in flash
-    if (!postBatchToServer(batch,-1)) { // -1 means not from flash
+    if (!postBatchToServer(batch, -1)) { // -1 means not from flash
         Serial.println("Failed to send batch to backend server - saving in flash");
         logger.logBatch(batch);
         uint16_t batchIndex = 0;
-        if(logger.getNewestBatch(batch, batchIndex))
+        if (logger.getNewestBatch(batch, batchIndex))
         {
           logger.logSendStatus(batchIndex, false, "Failed send");
         }

@@ -212,7 +212,7 @@ void ESPLogger::logSendStatus(int batchId, bool success, const String &message)
     }
 
     SendStatusEntry rec;
-    rec.timestamp = timestampStringToUnix(getTimeStamp()); // Replace with real timestamp if available
+    rec.timestamp = timestampStringToUnix(getTimeStamp());
     rec.batchId = batchId;
     rec.success = success;
 
