@@ -171,7 +171,7 @@ void handlePostRequestBinary(WiFiClient &client) {
         }
     }
     else {
-        Serial.println("Batch received from sensor sent successfully to backend server");
+        Serial.println("Batch received from sensor was sent successfully to backend server");
     }
 }
 
@@ -265,7 +265,7 @@ bool sendJsonToServer(const String &jsonString, int batchId)
 }
 
 // High-level function to post a batch
-bool postBatchToServer(const std::vector<SensorData> &batch, int batchID)
+bool postBatchToServer(const std::vector<SensorData> &batch, int batchId)
 {
   if (batch.empty())
   {
@@ -274,7 +274,7 @@ bool postBatchToServer(const std::vector<SensorData> &batch, int batchID)
   }
 
   String jsonString = serializeBatchToJson(batch);
-  return sendJsonToServer(jsonString, batchID);
+  return sendJsonToServer(jsonString, batchId);
 }
 
 void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batch)

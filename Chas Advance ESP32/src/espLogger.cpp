@@ -152,12 +152,12 @@ bool ESPLogger::getNewestBatch(std::vector<SensorData> &outEntries, uint16_t &ba
         return false;
 
     batchIndex = indices.back(); // newest batch
-    String fname = getBatchFilename(batchIndex);
+    String fileName = getBatchFilename(batchIndex);
 
-    if (!readBatchFile(fname, outEntries))
+    if (!readBatchFile(fileName, outEntries))
     {
-        Serial.printf("Batch %s is corrupted, removing file\n", fname.c_str());
-        LittleFS.remove(fname);
+        Serial.printf("Batch %s is corrupted, removing file\n", fileName.c_str());
+        LittleFS.remove(fileName);
         return false;
     }
 
@@ -195,59 +195,59 @@ void ESPLogger::logSendStatus(int batchId, bool success, const String &message)
 
     // Check log size
     if (LittleFS.exists(filename)) {
-        File check = LittleFS.open(filename, FILE_READ);
-        if (check && check.size() > MAX_LOG_SIZE) {
-            check.close();
+        File logFile = LittleFS.open(filename, FILE_READ);
+        if (logFile && logFile.size() > MAX_LOG_SIZE) {
+            logFile.close();
             Serial.println("Send status log too large, clearing...");
             LittleFS.remove(filename);
         } else {
-            check.close();
+            logFile.close();
         }
     }
 
-    File f = LittleFS.open(filename, FILE_APPEND);
-    if (!f) {
+    File sendStatusLogFile = LittleFS.open(filename, FILE_APPEND);
+    if (!sendStatusLogFile) {
         Serial.println("Failed to open send status log");
         return;
     }
 
-    SendStatusEntry rec;
-    rec.timestamp = timestampStringToUnix(getTimeStamp());
-    rec.batchId = batchId;
-    rec.success = success;
+    SendStatusEntry entry;
+    entry.timestamp = timestampStringToUnix(getTimeStamp());
+    entry.batchId = batchId;
+    entry.success = success;
 
     // Copy message safely (truncate if needed)
-    strncpy(rec.message, message.c_str(), sizeof(rec.message) - 1);
-    rec.message[sizeof(rec.message) - 1] = '\0';
+    strncpy(entry.message, message.c_str(), sizeof(entry.message) - 1);
+    entry.message[sizeof(entry.message) - 1] = '\0';
 
     // Write binary struct
-    f.write(reinterpret_cast<const uint8_t*>(&rec), sizeof(rec));
-    f.close();
+    sendStatusLogFile.write(reinterpret_cast<const uint8_t*>(&entry), sizeof(entry));
+    sendStatusLogFile.close();
 }
 
 void ESPLogger::printSendStatusLogs()
 {
     const char *filename = "/send_status.bin";
-    File f = LittleFS.open(filename, FILE_READ);
-    if (!f) {
+    File logFile = LittleFS.open(filename, FILE_READ);
+    if (!logFile) {
         Serial.println("No send status log found");
         return;
     }
 
     Serial.println("---- Send Status Log Start ----");
-    SendStatusEntry rec;
+    SendStatusEntry entry;
 
-    while (f.available() >= sizeof(SendStatusEntry)) {
-        f.read(reinterpret_cast<uint8_t*>(&rec), sizeof(rec));
+    while (logFile.available() >= sizeof(SendStatusEntry)) {
+        logFile.read(reinterpret_cast<uint8_t*>(&entry), sizeof(entry));
         Serial.printf("Time:%s | Batch:%d | Status:%s | %s\n",
-                      formatUnixTime(rec.timestamp).c_str(),
-                      rec.batchId,
-                      rec.success ? "OK" : "FAIL",
-                      rec.message);
+                      formatUnixTime(entry.timestamp).c_str(),
+                      entry.batchId,
+                      entry.success ? "OK" : "FAIL",
+                      entry.message);
     }
 
     Serial.println("---- Send Status Log End ----");
-    f.close();
+    logFile.close();
 }
 
 
