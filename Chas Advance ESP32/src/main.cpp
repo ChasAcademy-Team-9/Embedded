@@ -25,12 +25,14 @@ void setup()
   logger.printBatches();
   logger.printErrors();
   logger.printSendStatusLogs();
+
+  xTaskCreate(processBatches, "ProcessBatches", 8192, NULL, 1, NULL);
 }
 
 void loop()
 {
   checkDataTimeout(timeSinceDataReceived);
-  handleClient();
+  handleClientAsync();
   trySendPendingBatches();
 }
 

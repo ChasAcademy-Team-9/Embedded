@@ -17,8 +17,8 @@ void setupAccessPoint();
 // Sets up the HTTP server to handle incoming requests
 void setupHttpServer();
 // Handles incoming POST requests to /data
-void handlePostRequestBinary(WiFiClient& client);
-void handleClient();
+void handleClientAsync();
+void processBatches(void *parameter);
 // POST request helpers
 bool isValidPostRequest(WiFiClient &client, const String &requestLine);
 int readContentLength(WiFiClient &client);
