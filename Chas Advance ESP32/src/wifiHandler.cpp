@@ -161,12 +161,19 @@ void handlePostRequestBinary(WiFiClient &client) {
     respond(client, 200);      // Step 6: Send OK back to client
 
     // Step 7: Try to forward batch to backend, otherwise store in flash
-    if (!postBatchToServer(batch)) {
+    if (!postBatchToServer(batch, -1)) { // -1 means not from flash
         Serial.println("Failed to send batch to backend server - saving in flash");
         logger.logBatch(batch);
+        uint16_t batchIndex = 0;
+        if (logger.getNewestBatch(batch, batchIndex))
+        {
+          logger.logSendStatus(batchIndex, false, "Failed send");
+        }
+    }
+    else {
+        Serial.println("Batch received from sensor was sent successfully to backend server");
     }
 }
-
 
 void handleClient()
 {
@@ -200,7 +207,7 @@ void trySendPendingBatches()
 
   Serial.printf("Sending saved batch %d attempt %d/%d...\n", batchIndex, attempt, 3);
 
-  if (postBatchToServer(batchEntries))
+  if (postBatchToServer(batchEntries, batchIndex))
   {
     Serial.println("Saved batch sent successfully, removing file");
     String fname = logger.getBatchFilename(batchIndex);
@@ -212,18 +219,20 @@ void trySendPendingBatches()
 
   if (attempt >= 3)
   {
-    Serial.println("Batch send failed, will retry later");
+    Serial.println("Sending saved batch failed after 3 retries, will retry later");
+    logger.logSendStatus(batchIndex, false, "3 retries failed");
     retryInProgress = false;
   }
 }
 
 // Send a batch to API - Example POST HTTP Request
-bool sendJsonToServer(const String &jsonString)
+bool sendJsonToServer(const String &jsonString, int batchId)
 {
   WiFiClient client;
   if (!client.connect(host, port))
   {
-    Serial.println("Connection to server failed");
+    Serial.println("Connection to server failed when sending batch");
+    logger.logSendStatus(batchId, false, "Connection failed");
     return false;
   }
 
@@ -242,6 +251,7 @@ bool sendJsonToServer(const String &jsonString)
       String line = client.readStringUntil('\n');
       if (line.startsWith("HTTP/1.1 200"))
       {
+        logger.logSendStatus(batchId, true, "OK");
         client.stop();
         return true;
       }
@@ -249,12 +259,13 @@ bool sendJsonToServer(const String &jsonString)
   }
 
   client.stop();
+  logger.logSendStatus(batchId, false, "No response");
   Serial.println("No valid response from server");
   return false;
 }
 
 // High-level function to post a batch
-bool postBatchToServer(const std::vector<SensorData> &batch)
+bool postBatchToServer(const std::vector<SensorData> &batch, int batchId)
 {
   if (batch.empty())
   {
@@ -263,7 +274,7 @@ bool postBatchToServer(const std::vector<SensorData> &batch)
   }
 
   String jsonString = serializeBatchToJson(batch);
-  return sendJsonToServer(jsonString);
+  return sendJsonToServer(jsonString, batchId);
 }
 
 void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batch)
