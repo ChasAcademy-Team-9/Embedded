@@ -3,6 +3,7 @@
 #include "espLogger.h"
 #include <queue>
 #include <mutex>
+#include <HTTPClient.h>
 
 struct IncomingBatch
 {
@@ -13,7 +14,6 @@ struct IncomingBatch
 // Global queue and mutex for handling incoming batches
 std::queue<IncomingBatch> batchQueue;
 std::mutex queueMutex;
-const int maxRequestBodySize = 2 * 1024; // 2 KB max body size
 
 unsigned long timeSinceDataReceived = 0;
 WiFiServer server;
@@ -155,7 +155,6 @@ void respond(WiFiClient &client, int code)
   client.stop();
 }
 
-// --- Main handler ---
 void handleClientAsync()
 {
   WiFiClient client = server.available();
@@ -170,7 +169,7 @@ void handleClientAsync()
 
   // Step 2: Read headers and Content-Length
   int contentLength = readContentLength(client);
-  if (contentLength <= 0 || contentLength > maxRequestBodySize)
+  if (contentLength <= 0 || contentLength > 10 * 1024)
   {
     respond(client, 400);
     return;
@@ -214,83 +213,39 @@ void processBatches(void *parameter)
 
     if (hasBatch)
     {
-      // --- Start measuring latency ---
-      unsigned long t_start = millis();
-
-      // Parse, assign timestamps
+      // Parse, assign timestamps, log to LittleFS, post to server
       uint32_t sendMillis;
       std::vector<SensorData> sensorBatch;
-      if (!parseBatch(batch.data, sendMillis, sensorBatch))
+      if (parseBatch(batch.data, sendMillis, sensorBatch))
       {
-          Serial.printf("Failed to parse incoming batch! Buffer size: %u bytes. First 8 bytes: ", batch.data.size());
-          for (size_t i = 0; i < batch.data.size() && i < 8; ++i) {
-              Serial.printf("%02X ", batch.data[i]);
-          }
-          Serial.println();
-          continue; // skip this batch
-      }
-
-      assignAbsoluteTimestamps(sendMillis, sensorBatch);
-
-      // Log number of entries
-      Serial.printf("Received batch with %d entries\n", sensorBatch.size());
-
-      // Log each entry
-      for (const auto &entry : sensorBatch)
-      {
-        logSensorData(formatUnixTime(entry.timestamp),
-                      entry.temperature,
-                      entry.humidity,
-                      static_cast<ErrorType>(entry.errorType));
-      }
-
-      // Try sending batch to backend
-      bool sent = postBatchToServer(sensorBatch, -1);
-      if (!sent)
-      {
-        Serial.println("Failed to send batch to backend server - saving in flash");
-        logger.logBatch(sensorBatch);
-        uint16_t batchIndex = 0;
-        if (logger.getNewestBatch(sensorBatch, batchIndex))
+        assignAbsoluteTimestamps(sendMillis, sensorBatch);
+        Serial.printf("Received batch with %d entries\n", sensorBatch.size());
+        for (const auto &entry : sensorBatch)
         {
-          logger.logSendStatus(batchIndex, false, "Failed send");
+          logSensorData(formatUnixTime(entry.timestamp), entry.temperature, entry.humidity, static_cast<ErrorType>(entry.errorType));
+        }
+        if (!postBatchToServer(sensorBatch, -1))
+        { // -1 means not from flash
+          Serial.println("Failed to send batch to backend server - saving in flash");
+          logger.logBatch(sensorBatch);
+          uint16_t batchIndex = 0;
+          if (logger.getNewestBatch(sensorBatch, batchIndex))
+          {
+            logger.logSendStatus(batchIndex, false, "Failed send");
+          }
+        }
+        else
+        {
+          Serial.println("Batch received from sensor was sent successfully to backend server");
         }
       }
-      else
-      {
-        Serial.println("Batch sent successfully to backend server");
-      }
-
-      // --- End measuring latency ---
-      unsigned long t_end = millis();
-      unsigned long latency = t_end - t_start;
-      Serial.printf("Batch processing latency: %lu ms\n", latency);
-
-      // --- RAM usage ---
-      Serial.printf("Free heap: %u bytes, Min free heap: %u bytes\n",
-                    ESP.getFreeHeap(), ESP.getMinFreeHeap());
-
-      // --- Flash usage (LittleFS) ---
-      size_t usedFlash = 0;
-      File root = LittleFS.open("/");
-      File file = root.openNextFile();
-      while(file)
-      {
-          usedFlash += file.size();
-          file = root.openNextFile();
-      }
-      if (file) file.close();
-      if (root) root.close();
-      Serial.printf("Used Flash for batches: %u bytes\n", usedFlash);
-
     }
     else
     {
-      vTaskDelay(100 / portTICK_PERIOD_MS); // small delay if queue empty
+      vTaskDelay(10 / portTICK_PERIOD_MS); // small delay if queue empty
     }
   }
 }
-
 
 void trySendPendingBatches()
 {
@@ -336,40 +291,46 @@ void trySendPendingBatches()
 // Send a batch to API - Example POST HTTP Request
 bool sendJsonToServer(const String &jsonString, int batchId)
 {
-  WiFiClient client;
-  if (!client.connect(host, port))
+  if (WiFi.status() != WL_CONNECTED)
   {
-    Serial.println("Connection to server failed when sending batch");
-    logger.logSendStatus(batchId, false, "Connection failed");
+    Serial.println("WiFi not connected - can't send batch to database!");
+    logger.logSendStatus(batchId, false, "WiFi not connected");
     return false;
   }
 
-  client.print(String("POST /data HTTP/1.1\r\n") +
-               "Host: " + host + "\r\n" +
-               "Content-Type: application/json\r\n" +
-               "Content-Length: " + jsonString.length() + "\r\n" +
-               "Connection: close\r\n\r\n" +
-               jsonString);
+  HTTPClient http;
+  http.begin(host); // HTTPS URL
+  http.addHeader("Content-Type", "application/json");
 
-  unsigned long timeout = millis();
-  while (client.connected() && millis() - timeout < 2000)
+  int httpResponseCode = http.POST(jsonString);
+
+  if (httpResponseCode > 0)
   {
-    if (client.available())
+    String payload = http.getString(); // response from server
+    if (httpResponseCode == 201)
     {
-      String line = client.readStringUntil('\n');
-      if (line.startsWith("HTTP/1.1 200"))
-      {
-        logger.logSendStatus(batchId, true, "OK");
-        client.stop();
-        return true;
-      }
+      logger.logSendStatus(batchId, true, "OK");
+      Serial.println("Batch sent successfully!");
+      http.end();
+      return true;
+    }
+    else
+    {
+      logger.logSendStatus(batchId, false, payload);
+      Serial.print("Server responded with code: ");
+      Serial.println(httpResponseCode);
+      http.end();
+      return false;
     }
   }
-
-  client.stop();
-  logger.logSendStatus(batchId, false, "No response");
-  Serial.println("No valid response from server");
-  return false;
+  else
+  {
+    Serial.print("Error sending POST: ");
+    Serial.println(httpResponseCode);
+    logger.logSendStatus(batchId, false, "Connection failed");
+    http.end();
+    return false;
+  }
 }
 
 // High-level function to post a batch

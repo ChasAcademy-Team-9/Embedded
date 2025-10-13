@@ -6,6 +6,7 @@
 
 struct SensorData
 {
+    uint8_t SensorId;    // ID of the sensor
     uint32_t timestamp;  // milliseconds since Arduino started
     float temperature;
     float humidity;
