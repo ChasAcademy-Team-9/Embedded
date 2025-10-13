@@ -43,11 +43,12 @@ String serializeBatchToJson(const std::vector<SensorData> &batch)
     for (const auto &entry : batch)
     {
         JsonObject obj = dataArr.createNestedObject();
+        obj["SensorID"] = entry.SensorId; // Hardcoded for now
         obj["timestamp"] = formatUnixTime(entry.timestamp); 
         obj["temperature"] = entry.temperature;
         obj["humidity"] = entry.humidity;
-        obj["error"] = entry.error;
-        obj["errorType"] = entry.errorType;
+        //obj["error"] = entry.error;
+        //obj["errorType"] = entry.errorType;
     }
 
     String jsonString;

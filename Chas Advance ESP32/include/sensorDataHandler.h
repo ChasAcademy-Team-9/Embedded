@@ -8,6 +8,7 @@
 
 struct SensorData
 {
+    uint8_t SensorId;    /**< ID of the sensor */
     uint32_t timestamp;   /**< Unix timestamp of the sensor reading */
     float temperature;    /**< Temperature value */
     float humidity;       /**< Humidity value */
