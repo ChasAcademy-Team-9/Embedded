@@ -5,6 +5,7 @@
 #include "esp_system.h"
 
 ESPLogger logger;
+int stackSize = 8192;
 
 void setup()
 {
@@ -26,7 +27,7 @@ void setup()
   logger.printErrors();
   logger.printSendStatusLogs();
 
-  xTaskCreate(processBatches, "ProcessBatches", 8192, NULL, 1, NULL);
+  xTaskCreate(processBatches, "ProcessBatches", stackSize, NULL, 1, NULL);
 }
 
 void loop()

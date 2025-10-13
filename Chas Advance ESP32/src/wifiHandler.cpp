@@ -13,6 +13,7 @@ struct IncomingBatch
 // Global queue and mutex for handling incoming batches
 std::queue<IncomingBatch> batchQueue;
 std::mutex queueMutex;
+const int maxRequestBodySize = 2 * 1024; // 2 KB max body size
 
 unsigned long timeSinceDataReceived = 0;
 WiFiServer server;
@@ -169,7 +170,7 @@ void handleClientAsync()
 
   // Step 2: Read headers and Content-Length
   int contentLength = readContentLength(client);
-  if (contentLength <= 0 || contentLength > 10 * 1024)
+  if (contentLength <= 0 || contentLength > maxRequestBodySize)
   {
     respond(client, 400);
     return;
@@ -221,7 +222,11 @@ void processBatches(void *parameter)
       std::vector<SensorData> sensorBatch;
       if (!parseBatch(batch.data, sendMillis, sensorBatch))
       {
-          Serial.println("Failed to parse incoming batch!");
+          Serial.printf("Failed to parse incoming batch! Buffer size: %u bytes. First 8 bytes: ", batch.data.size());
+          for (size_t i = 0; i < batch.data.size() && i < 8; ++i) {
+              Serial.printf("%02X ", batch.data[i]);
+          }
+          Serial.println();
           continue; // skip this batch
       }
 
@@ -274,12 +279,14 @@ void processBatches(void *parameter)
           usedFlash += file.size();
           file = root.openNextFile();
       }
+      if (file) file.close();
+      if (root) root.close();
       Serial.printf("Used Flash for batches: %u bytes\n", usedFlash);
 
     }
     else
     {
-      vTaskDelay(10 / portTICK_PERIOD_MS); // small delay if queue empty
+      vTaskDelay(100 / portTICK_PERIOD_MS); // small delay if queue empty
     }
   }
 }
