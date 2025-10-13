@@ -213,32 +213,69 @@ void processBatches(void *parameter)
 
     if (hasBatch)
     {
-      // Parse, assign timestamps, log to LittleFS, post to server
+      // --- Start measuring latency ---
+      unsigned long t_start = millis();
+
+      // Parse, assign timestamps
       uint32_t sendMillis;
       std::vector<SensorData> sensorBatch;
-      if (parseBatch(batch.data, sendMillis, sensorBatch))
+      if (!parseBatch(batch.data, sendMillis, sensorBatch))
       {
-        assignAbsoluteTimestamps(sendMillis, sensorBatch);
-        Serial.printf("Received batch with %d entries\n", sensorBatch.size());
-        for (const auto &entry : sensorBatch)
+          Serial.println("Failed to parse incoming batch!");
+          continue; // skip this batch
+      }
+
+      assignAbsoluteTimestamps(sendMillis, sensorBatch);
+
+      // Log number of entries
+      Serial.printf("Received batch with %d entries\n", sensorBatch.size());
+
+      // Log each entry
+      for (const auto &entry : sensorBatch)
+      {
+        logSensorData(formatUnixTime(entry.timestamp),
+                      entry.temperature,
+                      entry.humidity,
+                      static_cast<ErrorType>(entry.errorType));
+      }
+
+      // Try sending batch to backend
+      bool sent = postBatchToServer(sensorBatch, -1);
+      if (!sent)
+      {
+        Serial.println("Failed to send batch to backend server - saving in flash");
+        logger.logBatch(sensorBatch);
+        uint16_t batchIndex = 0;
+        if (logger.getNewestBatch(sensorBatch, batchIndex))
         {
-          logSensorData(formatUnixTime(entry.timestamp), entry.temperature, entry.humidity, static_cast<ErrorType>(entry.errorType));
-        }
-        if (!postBatchToServer(sensorBatch, -1))
-        { // -1 means not from flash
-          Serial.println("Failed to send batch to backend server - saving in flash");
-          logger.logBatch(sensorBatch);
-          uint16_t batchIndex = 0;
-          if (logger.getNewestBatch(sensorBatch, batchIndex))
-          {
-            logger.logSendStatus(batchIndex, false, "Failed send");
-          }
-        }
-        else
-        {
-          Serial.println("Batch received from sensor was sent successfully to backend server");
+          logger.logSendStatus(batchIndex, false, "Failed send");
         }
       }
+      else
+      {
+        Serial.println("Batch sent successfully to backend server");
+      }
+
+      // --- End measuring latency ---
+      unsigned long t_end = millis();
+      unsigned long latency = t_end - t_start;
+      Serial.printf("Batch processing latency: %lu ms\n", latency);
+
+      // --- RAM usage ---
+      Serial.printf("Free heap: %u bytes, Min free heap: %u bytes\n",
+                    ESP.getFreeHeap(), ESP.getMinFreeHeap());
+
+      // --- Flash usage (LittleFS) ---
+      size_t usedFlash = 0;
+      File root = LittleFS.open("/");
+      File file = root.openNextFile();
+      while(file)
+      {
+          usedFlash += file.size();
+          file = root.openNextFile();
+      }
+      Serial.printf("Used Flash for batches: %u bytes\n", usedFlash);
+
     }
     else
     {
@@ -246,6 +283,7 @@ void processBatches(void *parameter)
     }
   }
 }
+
 
 void trySendPendingBatches()
 {

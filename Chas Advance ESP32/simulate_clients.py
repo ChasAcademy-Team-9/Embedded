@@ -1,73 +1,81 @@
-import socket
+import requests
 import struct
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-ESP_IP = "192.168.0.104"  # ESP32 STA IP
+ESP_HOST = "192.168.0.104"   # <-- your ESP32 STA IP
 ESP_PORT = 80
-NUM_SENSORS = 10
-BATCH_SIZE = 5  # number of SensorData per batch
-TIMEOUT = 3     # connect timeout in seconds
+N_SENSORS = 100              # total simulated sensors
+BATCH_SIZE = 10              # entries per batch
+MAX_DELAY = 2.0              # max random delay before sending (seconds)
+CONNECT_TIMEOUT = 2          # shorter connect timeout
+READ_TIMEOUT = 3             # read timeout
 
-# Simulate one SensorData
+# Simulated sensor data structure
 class SensorData:
-    def __init__(self):
-        self.timestamp = random.randint(0, 100000)  # Arduino millis
-        self.temperature = round(random.uniform(20, 30), 2)
-        self.humidity = round(random.uniform(30, 70), 2)
-        self.error = 0  # false
-        self.errorType = 0
+    def __init__(self, timestamp, temperature, humidity, errorType=0):
+        self.timestamp = timestamp
+        self.temperature = temperature
+        self.humidity = humidity
+        self.errorType = errorType
 
     def to_bytes(self):
-        # Struct layout: uint32_t, float, float, bool, uint8_t, padding 3 bytes
-        return struct.pack('<IffBxxx', self.timestamp, self.temperature, self.humidity, self.errorType)
+        # Same as Arduino struct:
+        # uint32_t timestamp, float temperature, float humidity, bool error, uint8_t errorType
+        # We'll pack bool as a single byte (0/1)
+        error_flag = 0
+        return struct.pack("<IffBBxx", self.timestamp, self.temperature, self.humidity, error_flag, self.errorType)
+
+def generate_batch():
+    now = int(time.time() * 1000) & 0xFFFFFFFF  # mimic millis() wraparound
+    return [SensorData(now + i * 100, random.uniform(15, 30), random.uniform(30, 70)) for i in range(BATCH_SIZE)]
 
 def send_batch(sensor_id, batch_id):
-    sendMillis = int(time.time() * 1000) & 0xFFFFFFFF  # simulate Arduino millis
-    batch = [SensorData() for _ in range(BATCH_SIZE)]
-
-    payload = struct.pack('<I', sendMillis) + b''.join([s.to_bytes() for s in batch])
-    content_length = len(payload)
-
-    # Build raw HTTP request
-    req = (
-        f"POST /data HTTP/1.1\r\n"
-        f"Host: {ESP_IP}\r\n"
-        f"Content-Type: application/octet-stream\r\n"
-        f"Content-Length: {content_length}\r\n"
-        f"Connection: close\r\n\r\n"
-    ).encode('utf-8') + payload
-
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(TIMEOUT)
-        s.connect((ESP_IP, ESP_PORT))
-        s.sendall(req)
-        resp = s.recv(1024)
-        s.close()
-        if b"200" in resp:
-            print(f"Sensor {sensor_id}, batch {batch_id}: success")
-            return True
-        else:
-            print(f"Sensor {sensor_id}, batch {batch_id}: failed, response: {resp}")
-            return False
+        # Random delay before sending (simulate jitter)
+        delay = random.uniform(0, MAX_DELAY)
+        time.sleep(delay)
+
+        batch = generate_batch()
+        sendMillis = int(time.time() * 1000) & 0xFFFFFFFF
+        payload = struct.pack("<I", sendMillis) + b"".join(s.to_bytes() for s in batch)
+
+        headers = {
+            "Content-Type": "application/octet-stream",
+            "Connection": "close"
+        }
+
+        response = requests.post(
+            f"http://{ESP_HOST}:{ESP_PORT}/data",
+            headers=headers,
+            data=payload,
+            timeout=(CONNECT_TIMEOUT, READ_TIMEOUT)
+        )
+
+        success = response.status_code == 200
+        print(f"Sensor {sensor_id:02}, batch {batch_id}: {'OK' if success else 'FAIL'} ({response.status_code})")
+        return success
+
     except Exception as e:
-        print(f"Sensor {sensor_id}, batch {batch_id}: failed -> {e}")
+        print(f"Sensor {sensor_id:02}, batch {batch_id}: failed -> {e}")
         return False
 
-def main():
-    results = []
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        futures = []
-        for sensor_id in range(NUM_SENSORS):
-            # Each sensor sends one batch
-            futures.append(executor.submit(send_batch, sensor_id, 0))
-        for future in as_completed(futures):
-            results.append(future.result())
 
-    success_count = sum(results)
-    print(f"\nAll batches sent: {success_count}/{NUM_SENSORS} successful")
+def main():
+    start = time.time()
+    successes = 0
+
+    with ThreadPoolExecutor(max_workers=50) as executor:
+        futures = [executor.submit(send_batch, i, 0) for i in range(N_SENSORS)]
+        for future in as_completed(futures):
+            if future.result():
+                successes += 1
+
+    elapsed = time.time() - start
+    print(f"\nAll batches sent in {elapsed:.2f} seconds")
+    print(f"Success rate: {successes}/{N_SENSORS} ({successes / N_SENSORS * 100:.1f}%)")
+
 
 if __name__ == "__main__":
     main()
