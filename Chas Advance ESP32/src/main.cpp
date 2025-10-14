@@ -5,6 +5,7 @@
 #include "esp_system.h"
 
 ESPLogger logger;
+int stackSize = 8192;
 
 void setup()
 {
@@ -25,12 +26,14 @@ void setup()
   logger.printBatches();
   logger.printErrors();
   logger.printSendStatusLogs();
+
+  xTaskCreate(processBatches, "ProcessBatches", stackSize, NULL, 1, NULL);
 }
 
 void loop()
 {
   checkDataTimeout(timeSinceDataReceived);
-  handleClient();
+  handleClientAsync();
   trySendPendingBatches();
 }
 

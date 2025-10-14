@@ -71,7 +71,7 @@ void ESPLogger::logBatch(std::vector<SensorData>& entries)
     // Keep batch count below MAX_BATCHES
     if (indices.size() >= MAX_BATCHES)
     {
-        Serial.println("Max batch files reached; removing oldest batch");
+        Serial.println("Max batch files reached, removing oldest batch");
         removeOldestBatch();
     }
 

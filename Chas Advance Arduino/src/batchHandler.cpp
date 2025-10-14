@@ -12,8 +12,6 @@ extern TemperatureMode currentMode;
 bool batchSensorReadings(const SensorData &data)
 {
     batchBuffer.push_back(data);
-    Serial.print("Batch size: ");
-    Serial.println(batchBuffer.size());
     if (batchStartTime == 0)
         batchStartTime = millis();
 
