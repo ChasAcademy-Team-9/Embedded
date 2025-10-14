@@ -291,6 +291,7 @@ void trySendPendingBatches()
 // Send a batch to API - Example POST HTTP Request
 bool sendJsonToServer(const String &jsonString, int batchId)
 {
+  //return false; // For testing without server
   if (WiFi.status() != WL_CONNECTED)
   {
     Serial.println("WiFi not connected - can't send batch to database!");

@@ -5,6 +5,7 @@
 #include <ArduinoJson.h>
 #include <vector>
 
+#pragma pack(push, 1)
 struct SensorData
 {
     uint8_t SensorId;    /**< ID of the sensor */
@@ -14,7 +15,7 @@ struct SensorData
     bool error;           /**< Whether there was an error in this reading */
     uint8_t errorType;    /**< Type of error, if any */
 };
-
+#pragma pack(pop)
 float median(std::vector<float>& values);
 SensorData calcMedian(JsonArray& arr);
 

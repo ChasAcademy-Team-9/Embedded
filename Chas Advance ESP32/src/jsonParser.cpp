@@ -14,9 +14,9 @@ void parseJson(String json)
         return;
     }
 
-    String timestamp = doc["timestamp"] | "";
-    float temperature = doc["temperature"] | 0.0;
-    float humidity = doc["humidity"] | 0.0;
+    String timestamp = doc["SensorTimeStamp"] | "";
+    float temperature = doc["Temperature"] | 0.0;
+    float humidity = doc["Humidity"] | 0.0;
     bool error = doc["error"] | false;
     int errorTypeInt = doc["errorType"] | 0; // safe fallback
     ErrorType errorType = static_cast<ErrorType>(errorTypeInt);
@@ -24,7 +24,7 @@ void parseJson(String json)
     logSensorData(timestamp, temperature, humidity, errorType);
 }
 
-void parseJsonArray(JsonArray& arr, const String &timestamp)
+void parseJsonArray(JsonArray &arr, const String &timestamp)
 {
     for (JsonObject obj : arr)
     {
@@ -43,12 +43,12 @@ String serializeBatchToJson(const std::vector<SensorData> &batch)
     for (const auto &entry : batch)
     {
         JsonObject obj = dataArr.createNestedObject();
-        obj["SensorID"] = entry.SensorId; // Hardcoded for now
-        obj["timestamp"] = formatUnixTime(entry.timestamp); 
-        obj["temperature"] = entry.temperature;
-        obj["humidity"] = entry.humidity;
-        //obj["error"] = entry.error;
-        //obj["errorType"] = entry.errorType;
+        obj["ArduinoID"] = entry.SensorId; // Hardcoded for now
+        obj["SensorTimeStamp"] = formatUnixTime(entry.timestamp);
+        obj["Temperature"] = entry.temperature;
+        obj["Humidity"] = entry.humidity;
+        // obj["error"] = entry.error;
+        // obj["errorType"] = entry.errorType;
     }
 
     String jsonString;
