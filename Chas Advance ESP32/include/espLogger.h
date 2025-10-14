@@ -5,6 +5,7 @@
 #include "LittleFS.h"
 #include <ArduinoJson.h>
 #include "sensorDataHandler.h"
+#include "log.h"
 #include <CRC32.h>
 
 #define MAX_ENTRIES 16

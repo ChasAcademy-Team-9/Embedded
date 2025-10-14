@@ -2,6 +2,7 @@
 #define JSONPARSER_H
 #include <Arduino.h>
 #include "sensorDataHandler.h"
+#include "log.h"
 
 void parseJson(String json);
 void parseJsonArray(JsonArray& arr, const String &timestamp);

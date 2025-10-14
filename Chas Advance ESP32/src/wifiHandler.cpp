@@ -345,30 +345,3 @@ bool postBatchToServer(const std::vector<SensorData> &batch, int batchId)
   String jsonString = serializeBatchToJson(batch);
   return sendJsonToServer(jsonString, batchId);
 }
-
-void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batch)
-{
-  if (batch.empty())
-    return;
-
-  // ESP32 current Unix time (seconds)
-  uint32_t now = timestampStringToUnix(getTimeStamp());
-
-  // Last measurement
-  SensorData &latest = batch.back();
-  uint32_t lastMeasurementMillis = latest.timestamp; // Arduino millis of last measurement
-
-  // How long since last measurement until batch was sent
-  uint32_t delayMs = (sendMillis >= lastMeasurementMillis) ? (sendMillis - lastMeasurementMillis) : 0;
-
-  // Absolute Unix time of last measurement
-  uint32_t lastMeasurementUnix = now - (delayMs / 1000);
-  latest.timestamp = lastMeasurementUnix;
-
-  // Walk backwards for previous entries
-  for (int i = batch.size() - 2; i >= 0; i--)
-  {
-    uint32_t deltaMs = lastMeasurementMillis - batch[i].timestamp; // millis between measurements
-    batch[i].timestamp = lastMeasurementUnix - (deltaMs / 1000);
-  }
-}

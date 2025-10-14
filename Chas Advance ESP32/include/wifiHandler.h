@@ -6,6 +6,7 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include "jsonParser.h"
+#include "log.h"
 #include <time.h>
 
 // initialize wifi setup
@@ -30,7 +31,6 @@ void respond(WiFiClient &client, int code);
 void trySendPendingBatches();
 bool sendJsonToServer(const String &jsonString, int batchId);
 bool postBatchToServer(const std::vector<SensorData> &batch, int batchID);
-void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batch);
 
 extern unsigned long timeSinceDataReceived;
 extern WiFiServer server; // Server listen to port 80

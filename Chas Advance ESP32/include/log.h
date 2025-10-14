@@ -2,6 +2,7 @@
 #define LOG_H
 
 #include <Arduino.h>
+#include "sensorDataHandler.h"
 
 enum ErrorType {
     NONE = 0,
@@ -23,6 +24,7 @@ void checkDataTimeout(unsigned long &timeSinceDataReceived);
 String getTimeStamp();
 String formatUnixTime(uint32_t ts);
 uint32_t timestampStringToUnix(const String &tsStr);
+void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batch);
 
 
 #endif
