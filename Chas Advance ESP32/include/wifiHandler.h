@@ -9,6 +9,8 @@
 #include "log.h"
 #include <time.h>
 
+#define maxRequestBodySize (10*1024) // Max size of incoming POST body in bytes
+
 // initialize wifi setup
 void initWifi();
 // Connects the ESP32 to the WiFi network

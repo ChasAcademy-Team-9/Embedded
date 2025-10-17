@@ -169,7 +169,7 @@ void handleClientAsync()
 
   // Step 2: Read headers and Content-Length
   int contentLength = readContentLength(client);
-  if (contentLength <= 0 || contentLength > 10 * 1024)
+  if (contentLength <= 0 || contentLength > maxRequestBodySize)
   {
     respond(client, 400);
     return;
@@ -239,10 +239,13 @@ void processBatches(void *parameter)
           Serial.println("Batch received from sensor was sent successfully to backend server");
         }
       }
+      else{
+        Serial.println("Invalid batch received - batch discarded");
+      }
     }
     else
     {
-      vTaskDelay(10 / portTICK_PERIOD_MS); // small delay if queue empty
+      vTaskDelay(100 / portTICK_PERIOD_MS); // small delay if queue empty
     }
   }
 }
