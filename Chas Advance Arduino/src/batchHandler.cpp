@@ -1,6 +1,7 @@
 #include "batchHandler.h"
 #include "arduinoLogger.h"
 #include "wifiHandler.h"
+#include <algorithm>
 
 static std::vector<SensorData> batchBuffer;
 unsigned long batchSendInterval = 30000;
