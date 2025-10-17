@@ -1,4 +1,5 @@
 #include <DHT.h>
+#include <WiFiS3.h>
 #include "MockSensor.h"
 #include "log.h"
 #include "wifiHandler.h"
@@ -14,6 +15,9 @@ DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
 TemperatureMode currentMode = ROOM_TEMP; // Default mode
 uint8_t sensorId = 1;
+
+// Track WiFi connection state for flash data transfer
+bool wasWifiConnected = false;
 
 void setup()
 {
@@ -48,6 +52,15 @@ void loop()
   }
   connectToESPAccessPointAsync();
   updateLogger();
+
+  // Check for WiFi connection change and send flash data if just connected
+  bool isWifiConnected = (WiFi.status() == WL_CONNECTED);
+  if (isWifiConnected && !wasWifiConnected)
+  {
+    Serial.println("WiFi connected! Checking for flash data to send...");
+    checkAndSendFlashData();
+  }
+  wasWifiConnected = isWifiConnected;
 
   if (batchSensorReadings(data) && attemptSendBatch())
   {

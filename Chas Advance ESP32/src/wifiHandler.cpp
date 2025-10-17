@@ -68,11 +68,11 @@ void setupHttpServer()
 
 // --- Helpers ---
 
-// Check that the request line starts with "POST /data"
+// Check that the request line starts with "POST /data" or "POST /flashdata"
 // If not, return 404 and close connection
 bool isValidPostRequest(WiFiClient &client, const String &requestLine)
 {
-  if (!requestLine.startsWith("POST /data"))
+  if (!requestLine.startsWith("POST /data") && !requestLine.startsWith("POST /flashdata"))
   {
     client.println("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
     client.stop();
@@ -222,7 +222,7 @@ void processBatches(void *parameter)
         Serial.printf("Received batch with %d entries\n", sensorBatch.size());
         for (const auto &entry : sensorBatch)
         {
-          logSensorData(formatUnixTime(entry.timestamp), entry.temperature, entry.humidity, static_cast<ErrorType>(entry.errorType));
+          logSensorData(getTimeStamp(), entry.temperature, entry.humidity, static_cast<bool>(entry.errorType));
         }
         if (!postBatchToServer(sensorBatch, -1))
         { // -1 means not from flash
@@ -239,7 +239,8 @@ void processBatches(void *parameter)
           Serial.println("Batch received from sensor was sent successfully to backend server");
         }
       }
-      else{
+      else
+      {
         Serial.println("Invalid batch received - batch discarded");
       }
     }
@@ -294,7 +295,7 @@ void trySendPendingBatches()
 // Send a batch to API - Example POST HTTP Request
 bool sendJsonToServer(const String &jsonString, int batchId)
 {
-  //return false; // For testing without server
+  // return false; // For testing without server
   if (WiFi.status() != WL_CONNECTED)
   {
     Serial.println("WiFi not connected - can't send batch to database!");

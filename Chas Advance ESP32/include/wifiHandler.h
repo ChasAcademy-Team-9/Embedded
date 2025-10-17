@@ -2,14 +2,16 @@
 #define WIFIHANDLER_H
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <WiFi.h>
 #include <WebServer.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include "jsonParser.h"
 #include "log.h"
+#include "sensorDataHandler.h"
 #include <time.h>
 
-#define maxRequestBodySize (10*1024) // Max size of incoming POST body in bytes
+#define maxRequestBodySize (10 * 1024) // Max size of incoming POST body in bytes
 
 // initialize wifi setup
 void initWifi();
@@ -27,7 +29,7 @@ bool isValidPostRequest(WiFiClient &client, const String &requestLine);
 int readContentLength(WiFiClient &client);
 bool readRequestBody(WiFiClient &client, std::vector<uint8_t> &buffer, int contentLength);
 bool parseBatch(const std::vector<uint8_t> &buffer, uint32_t &sendMillis, std::vector<SensorData> &batch);
-void respond(WiFiClient &client, int code); 
+void respond(WiFiClient &client, int code);
 
 // Retry sending saved batches
 void trySendPendingBatches();

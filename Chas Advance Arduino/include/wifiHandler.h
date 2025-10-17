@@ -14,4 +14,7 @@ void sendDataToESP32(std::vector<SensorData> &batch);
 bool postToESP32(std::vector<SensorData> &batch);
 void updateLogger();
 
+// New functions for flash memory data transfer
+void checkAndSendFlashData();
+
 #endif // WIFIHANDLER_H
