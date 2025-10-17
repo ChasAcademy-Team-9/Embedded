@@ -38,7 +38,7 @@ void parseJsonArray(JsonArray &arr, const String &timestamp)
 String serializeBatchToJson(const std::vector<SensorData> &batch)
 {
     StaticJsonDocument<2048> doc;
-    JsonArray dataArr = doc.createNestedArray("data");
+    JsonArray dataArr = doc.to<JsonArray>();
 
     for (const auto &entry : batch)
     {
@@ -47,11 +47,9 @@ String serializeBatchToJson(const std::vector<SensorData> &batch)
         obj["SensorTimeStamp"] = formatUnixTime(entry.timestamp);
         obj["Temperature"] = entry.temperature;
         obj["Humidity"] = entry.humidity;
-        // obj["error"] = entry.error;
-        // obj["errorType"] = entry.errorType;
     }
 
     String jsonString;
-    serializeJson(doc, jsonString);
+    serializeJson(doc, jsonString); // serialisera arrayen direkt
     return jsonString;
 }

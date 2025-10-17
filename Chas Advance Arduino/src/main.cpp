@@ -56,6 +56,5 @@ void loop()
 
   logSensorData(data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
 
-
   delay(3000);
 }

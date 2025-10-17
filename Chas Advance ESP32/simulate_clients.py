@@ -8,8 +8,8 @@ ESP_HOST = "192.168.0.104"   # <-- your ESP32 STA IP
 ESP_PORT = 80
 N_SENSORS = 100              # total simulated sensors
 BATCH_SIZE = 10              # entries per batch
-MAX_DELAY = 2.0              # max random delay before sending (seconds)
-CONNECT_TIMEOUT = 2          # shorter connect timeout
+MAX_DELAY = 3.0              # max random delay before sending (seconds)
+CONNECT_TIMEOUT = 3          # shorter connect timeout
 READ_TIMEOUT = 3             # read timeout
 
 # ---- Struct format ----
