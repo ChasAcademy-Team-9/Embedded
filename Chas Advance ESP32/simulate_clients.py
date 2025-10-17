@@ -8,37 +8,61 @@ ESP_HOST = "192.168.0.104"   # <-- your ESP32 STA IP
 ESP_PORT = 80
 N_SENSORS = 100              # total simulated sensors
 BATCH_SIZE = 10              # entries per batch
-MAX_DELAY = 2.0              # max random delay before sending (seconds)
-CONNECT_TIMEOUT = 2          # shorter connect timeout
+MAX_DELAY = 3.0              # max random delay before sending (seconds)
+CONNECT_TIMEOUT = 3          # shorter connect timeout
 READ_TIMEOUT = 3             # read timeout
 
-# Simulated sensor data structure
+# ---- Struct format ----
+# uint8_t SensorId
+# uint32_t timestamp
+# float temperature
+# float humidity
+# bool error (1 byte)
+# uint8_t errorType
+SENSORDATA_STRUCT = struct.Struct("<BIffBB")
+
+
 class SensorData:
-    def __init__(self, timestamp, temperature, humidity, errorType=0):
+    def __init__(self, sensor_id, timestamp, temperature, humidity, error=False, errorType=0):
+        self.SensorId = sensor_id
         self.timestamp = timestamp
         self.temperature = temperature
         self.humidity = humidity
+        self.error = error
         self.errorType = errorType
 
     def to_bytes(self):
-        # Same as Arduino struct:
-        # uint32_t timestamp, float temperature, float humidity, bool error, uint8_t errorType
-        # We'll pack bool as a single byte (0/1)
-        error_flag = 0
-        return struct.pack("<IffBBxx", self.timestamp, self.temperature, self.humidity, error_flag, self.errorType)
+        return SENSORDATA_STRUCT.pack(
+            self.SensorId,
+            self.timestamp,
+            self.temperature,
+            self.humidity,
+            int(self.error),
+            self.errorType
+        )
 
-def generate_batch():
-    now = int(time.time() * 1000) & 0xFFFFFFFF  # mimic millis() wraparound
-    return [SensorData(now + i * 100, random.uniform(15, 30), random.uniform(30, 70)) for i in range(BATCH_SIZE)]
+
+def generate_batch(sensor_id):
+    now = int(time.time())  # use seconds if your C++ uses epoch seconds
+    return [
+        SensorData(
+            sensor_id,
+            now + i,
+            random.uniform(15, 30),
+            random.uniform(30, 70)
+        )
+        for i in range(BATCH_SIZE)
+    ]
+
 
 def send_batch(sensor_id, batch_id):
     try:
-        # Random delay before sending (simulate jitter)
         delay = random.uniform(0, MAX_DELAY)
         time.sleep(delay)
 
-        batch = generate_batch()
+        batch = generate_batch(sensor_id)
         sendMillis = int(time.time() * 1000) & 0xFFFFFFFF
+
         payload = struct.pack("<I", sendMillis) + b"".join(s.to_bytes() for s in batch)
 
         headers = {
@@ -67,7 +91,7 @@ def main():
     successes = 0
 
     with ThreadPoolExecutor(max_workers=50) as executor:
-        futures = [executor.submit(send_batch, i, 0) for i in range(N_SENSORS)]
+        futures = [executor.submit(send_batch, i + 1, 0) for i in range(N_SENSORS)]
         for future in as_completed(futures):
             if future.result():
                 successes += 1

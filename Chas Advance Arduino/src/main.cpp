@@ -13,6 +13,7 @@
 DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
 TemperatureMode currentMode = ROOM_TEMP; // Default mode
+uint8_t sensorId = 1;
 
 void setup()
 {
@@ -35,7 +36,7 @@ void loop()
   float humidity = dht.readHumidity();
   bool error = false;
 
-  SensorData data = {millis(), temperature, humidity, error, NONE};
+  SensorData data = {sensorId, millis(), temperature, humidity, error, NONE};
   if (isnan(humidity) || isnan(temperature))
   {
     data.error = true;
@@ -54,7 +55,6 @@ void loop()
   }
 
   logSensorData(data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
-
 
   delay(3000);
 }
