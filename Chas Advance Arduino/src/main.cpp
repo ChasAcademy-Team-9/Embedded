@@ -58,7 +58,7 @@ void loop()
   if (isWifiConnected && !wasWifiConnected)
   {
     Serial.println("WiFi connected! Checking for flash data to send...");
-    checkAndSendFlashData();
+    logger.sendFlashDataIfAvailable(sensorId);
   }
   wasWifiConnected = isWifiConnected;
 

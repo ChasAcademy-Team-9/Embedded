@@ -1,6 +1,7 @@
 #include "arduinoLogger.h"
 #include <EEPROM.h>
 #include "batchHandler.h"
+#include "wifiHandler.h"
 
 // Initialize the logger
 void Logger::begin()
@@ -159,34 +160,34 @@ void Logger::update(bool wifiConnected)
         logNow = true;
         loggerActive = false;
     }
-    if(logNow)
-    createLogFromBatch(batch, now);
+    if (logNow)
+        createLogFromBatch(batch, now);
 }
 
 void Logger::createLogFromBatch(std::vector<SensorData> &batch, unsigned long now)
 {
-        bool errorLogged = false;
-        for (auto &entry : batch)
+    bool errorLogged = false;
+    for (auto &entry : batch)
+    {
+        if (entry.error)
         {
-            if (entry.error)
-            {
-                // Log the first error found
-                log(String(entry.temperature) + "," +
-                    String(entry.humidity) + "," +
-                    String(static_cast<int>(entry.errorType)));
-                errorLogged = true;
-                break;
-            }
+            // Log the first error found
+            log(String(entry.temperature) + "," +
+                String(entry.humidity) + "," +
+                String(static_cast<int>(entry.errorType)));
+            errorLogged = true;
+            break;
         }
+    }
 
-        if (!errorLogged)
-        {
-            // No errors, log median
-            SensorData medianData = calculateMedian(batch);
-            logMedian(medianData);
-        }
+    if (!errorLogged)
+    {
+        // No errors, log median
+        SensorData medianData = calculateMedian(batch);
+        logMedian(medianData);
+    }
 
-        timeSinceLog = now; // Reset timer
+    timeSinceLog = now; // Reset timer
 }
 
 void Logger::logMedian(const SensorData &medianData)
@@ -194,4 +195,66 @@ void Logger::logMedian(const SensorData &medianData)
     log(String(medianData.temperature) + "," +
         String(medianData.humidity) + "," +
         "0"); // 0 indicates no error for median log
+}
+
+std::vector<SensorData> Logger::getFlashDataAsBatch(uint8_t sensorId)
+{
+    std::vector<SensorData> flashBatch;
+
+    for (size_t i = 0; i < size(); i++)
+    {
+        String entryStr = getEntry(i);
+        if (entryStr.length() > 0)
+        {
+            // Parse the comma-separated string back to SensorData
+            // Format: "temperature,humidity,errorType"
+            int firstComma = entryStr.indexOf(',');
+            int secondComma = entryStr.indexOf(',', firstComma + 1);
+
+            if (firstComma != -1 && secondComma != -1)
+            {
+                SensorData entry;
+                entry.SensorId = sensorId;
+                entry.timestamp = millis(); // Use current time
+                entry.temperature = entryStr.substring(0, firstComma).toFloat();
+                entry.humidity = entryStr.substring(firstComma + 1, secondComma).toFloat();
+                entry.errorType = entryStr.substring(secondComma + 1).toInt();
+                entry.error = (entry.errorType != 0);
+
+                flashBatch.push_back(entry);
+            }
+        }
+    }
+
+    return flashBatch;
+}
+
+bool Logger::sendFlashDataIfAvailable(uint8_t sensorId)
+{
+    if (size() == 0)
+    {
+        Serial.println("No data in flash memory to send");
+        return false;
+    }
+
+    Serial.print("Found ");
+    Serial.print(size());
+    Serial.println(" entries in flash memory. Attempting to send to ESP32...");
+
+    std::vector<SensorData> flashBatch = getFlashDataAsBatch(sensorId);
+
+    if (!flashBatch.empty())
+    {
+        Serial.print("Sending ");
+        Serial.print(flashBatch.size());
+        Serial.println(" flash entries using regular batch format");
+
+        sendDataToESP32(flashBatch);
+
+        Serial.println("Flash data sent, clearing flash memory...");
+        clearAll();
+        return true;
+    }
+
+    return false;
 }
