@@ -1,4 +1,4 @@
-#include "networkDataHandler.h"
+#include "batchNetworkHandler.h"
 #include "ESPSECRETS.h"
 #include "espLogger.h"
 #include <queue>
@@ -65,7 +65,7 @@ void handleClientAsync()
   // Step 4: Push to processing queue
   {
     std::lock_guard<std::mutex> lock(queueMutex);
-    batchQueue.push({buffer, client.remoteIP()});
+    batchQueue.push({buffer});
   }
 
   // Step 5: Immediate response

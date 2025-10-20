@@ -1,9 +1,9 @@
-#ifndef NETWORKHANDLER_H
-#define NETWORKHANDLER_H
+#ifndef BATCHNETWORKHANDLER_H
+#define BATCHNETWORKHANDLER_H
 
 #include <WiFi.h>
 #include <WiFiClient.h>
-#include "sensorDataHandler.h"
+#include "sensorData.h"
 
 /// Maximum allowed size (bytes) for incoming POST body to /data
 #define maxRequestBodySize (10*1024) // 10 KB

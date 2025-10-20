@@ -2,19 +2,17 @@
 #define BATCHPROCESSOR_H
 
 #include <Arduino.h>
-#include "sensorDataHandler.h"
+#include "sensorData.h"
 #include "log.h"
 
 /**
  * @brief Internal structure representing an incoming batch from a client.
  *
  * data: raw bytes received (sendMillis + SensorData[])
- * clientIP: IPv4 address in network order returned by WiFiClient::remoteIP()
  */
 struct IncomingBatch
 {
   std::vector<uint8_t> data;
-  uint32_t clientIP;
 };
 
 /**

@@ -6,7 +6,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <vector>
-#include "sensorDataHandler.h"
+#include "sensorData.h"
 #include "log.h"
 #include <CRC32.h>
 
@@ -68,6 +68,8 @@ public:
     /**
      * @brief Append an error message to the error log with a timestamp.
      * @param msg Human readable error message
+     * @note This function is not used anywhere in the current codebase 
+     *       - but kept for potential future use.
      */
     void logError(const String &msg);
 

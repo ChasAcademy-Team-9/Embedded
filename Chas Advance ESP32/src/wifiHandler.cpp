@@ -1,11 +1,3 @@
-/**
- * @file wifiHandler.cpp
- * @brief Implementation of WiFi, HTTP ingestion and batch processing helpers.
- *
- * This module provides:
- *  - STA + AP setup
- */
-
 #include "wifiHandler.h"
 #include "ESPSECRETS.h"
 

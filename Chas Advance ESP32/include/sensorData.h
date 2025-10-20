@@ -1,5 +1,5 @@
-#ifndef SENSORDATAHANDLER_H
-#define SENSORDATAHANDLER_H
+#ifndef SENSORDATA_H
+#define SENSORDATA_H
 
 #include <Arduino.h>
 #include <ArduinoJson.h>

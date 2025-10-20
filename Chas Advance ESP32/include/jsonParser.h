@@ -2,7 +2,7 @@
 #define JSONPARSER_H
 
 #include <Arduino.h>
-#include "sensorDataHandler.h"
+#include "sensorData.h"
 #include "log.h"
 
 /**

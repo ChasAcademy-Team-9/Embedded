@@ -2,7 +2,7 @@
 #define LOG_H
 
 #include <Arduino.h>
-#include "sensorDataHandler.h"
+#include "sensorData.h"
 
 /* @brief Log.h - Simple logging and time utilities.
  *

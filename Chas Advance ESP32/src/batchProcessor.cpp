@@ -2,7 +2,7 @@
 #include "log.h"
 #include <queue>
 #include <mutex>
-#include "networkDataHandler.h"
+#include "batchNetworkHandler.h"
 #include "espLogger.h"
 
 /* Global queue and mutex used to transfer work from the network handler
