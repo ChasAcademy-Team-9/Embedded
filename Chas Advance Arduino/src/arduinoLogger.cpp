@@ -249,11 +249,18 @@ bool Logger::sendFlashDataIfAvailable(uint8_t sensorId)
         Serial.print(flashBatch.size());
         Serial.println(" flash entries using regular batch format");
 
-        sendDataToESP32(flashBatch);
-
-        Serial.println("Flash data sent, clearing flash memory...");
-        clearAll();
-        return true;
+        bool sentSuccessfully = sendDataToESP32(flashBatch);
+        if (sentSuccessfully)
+        {
+            Serial.println("Flash data sent, clearing flash memory...");
+            clearAll();
+            return true;
+        }
+        else
+        {
+            Serial.println("Failed to send flash data to ESP32. Flash memory not cleared.");
+            return false;
+        }
     }
 
     return false;
