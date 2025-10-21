@@ -16,9 +16,6 @@ Logger logger;
 TemperatureMode currentMode = ROOM_TEMP; // Default mode
 uint8_t sensorId = 1;
 
-// Track WiFi connection state for flash data transfer
-bool wasWifiConnected = false;
-
 void setup()
 {
   Serial.begin(115200);
@@ -50,17 +47,16 @@ void loop()
   {
     checkThresholds(data, getThresholdsForMode(currentMode));
   }
-  connectToESPAccessPointAsync();
-  updateLogger();
 
-  // Check for WiFi connection change and send flash data if just connected
-  bool isWifiConnected = (WiFi.status() == WL_CONNECTED);
-  if (isWifiConnected && !wasWifiConnected)
+  connectToESPAccessPointAsync();
+
+  // Always check for flash data when WiFi is connected
+  if (WiFi.status() == WL_CONNECTED)
   {
-    Serial.println("WiFi connected! Checking for flash data to send...");
     logger.sendFlashDataIfAvailable(sensorId);
   }
-  wasWifiConnected = isWifiConnected;
+
+  updateLogger();
 
   if (batchSensorReadings(data) && attemptSendBatch())
   {
