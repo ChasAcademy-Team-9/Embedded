@@ -159,7 +159,7 @@ This separation ensures test configuration doesn't affect production builds.
 
 Potential areas for expansion:
 1. Add tests for WiFi handler functions
-2. Add tests for batch batching logic (timing-based tests)
+2. Add tests for batch sending logic (timing-based tests)
 3. Add integration tests that combine multiple functions
 4. Add tests for logger functions
 5. Set up CI/CD pipeline to run tests automatically on every commit
