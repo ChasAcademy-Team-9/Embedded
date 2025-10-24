@@ -10,9 +10,11 @@
 #include "arduinoLogger.h"
 #include "sensorData.h"
 
+// Use the global logger instance declared in test_main.cpp
+extern Logger logger;
+
 void test_get_flash_data_as_batch_empty(void)
 {
-    Logger logger;
     logger.begin();
     logger.clearAll(); // Ensure flash is empty
     
@@ -23,7 +25,6 @@ void test_get_flash_data_as_batch_empty(void)
 
 void test_get_flash_data_as_batch_with_data(void)
 {
-    Logger logger;
     logger.begin();
     logger.clearAll();
     
@@ -54,7 +55,6 @@ void test_get_flash_data_as_batch_with_data(void)
 
 void test_send_flash_data_when_empty(void)
 {
-    Logger logger;
     logger.begin();
     logger.clearAll(); // Ensure flash is empty
     
@@ -65,7 +65,6 @@ void test_send_flash_data_when_empty(void)
 
 void test_flash_data_parsing_malformed_entries(void)
 {
-    Logger logger;
     logger.begin();
     logger.clearAll();
     
@@ -82,7 +81,6 @@ void test_flash_data_parsing_malformed_entries(void)
 
 void test_flash_data_preserves_sensor_id(void)
 {
-    Logger logger;
     logger.begin();
     logger.clearAll();
     
