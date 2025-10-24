@@ -1,7 +1,8 @@
 #include <Arduino.h>
-#include "mockJson.h"
 #include "wifiHandler.h"
 #include "espLogger.h"
+#include "batchNetworkHandler.h"
+#include "batchProcessor.h"
 #include "esp_system.h"
 
 ESPLogger logger;
