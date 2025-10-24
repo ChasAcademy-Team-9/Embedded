@@ -14,6 +14,10 @@
 #include "mockSensor.h"
 #include "sensorData.h"
 #include "thresholds.h"
+#include "arduinoLogger.h"
+
+// Global variables required by dependencies
+Logger logger;
 
 // Forward declarations for test functions from other files
 // Batch handler tests
@@ -42,6 +46,13 @@ void test_temperature_at_maximum(void);
 void test_room_temp_thresholds(void);
 void test_cooler_thresholds(void);
 void test_freezer_thresholds(void);
+
+// Flash functionality tests
+void test_get_flash_data_as_batch_empty(void);
+void test_get_flash_data_as_batch_with_data(void);
+void test_send_flash_data_when_empty(void);
+void test_flash_data_parsing_malformed_entries(void);
+void test_flash_data_preserves_sensor_id(void);
 
 void setup()
 {
@@ -74,6 +85,13 @@ void setup()
     RUN_TEST(test_room_temp_thresholds);
     RUN_TEST(test_cooler_thresholds);
     RUN_TEST(test_freezer_thresholds);
+
+    // Run flash functionality tests
+    RUN_TEST(test_get_flash_data_as_batch_empty);
+    RUN_TEST(test_get_flash_data_as_batch_with_data);
+    RUN_TEST(test_send_flash_data_when_empty);
+    RUN_TEST(test_flash_data_parsing_malformed_entries);
+    RUN_TEST(test_flash_data_preserves_sensor_id);
 
     UNITY_END();
 }
