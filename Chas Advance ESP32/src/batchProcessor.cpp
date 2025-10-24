@@ -17,10 +17,10 @@ extern ESPLogger logger;
 /**
  * @brief Handle a parsed sensor batch: assign timestamps, log entries and try send.
  */
-static void handleParsedBatch(uint32_t sendMillis, std::vector<SensorData> &sensorBatch)
+void handleParsedBatch(uint32_t sendMillis, std::vector<SensorData> &sensorBatch)
 {
   assignAbsoluteTimestamps(sendMillis, sensorBatch);
-  Serial.printf("Received batch with %u entries\n", (unsigned) sensorBatch.size());
+  Serial.printf("Received batch with %zu entries\n", sensorBatch.size());
 
   for (const auto &entry : sensorBatch)
   {
@@ -82,7 +82,7 @@ bool parseBatch(const std::vector<uint8_t> &buffer, uint32_t &sendMillis, std::v
  * Responsible for parsing the binary payload and delegating to the parsed
  * batch handler or logging an error when parsing fails.
  */
-static void processSingleBatch(const IncomingBatch &incoming)
+void processSingleBatch(const IncomingBatch &incoming)
 {
   uint32_t sendMillis;
   std::vector<SensorData> sensorBatch;

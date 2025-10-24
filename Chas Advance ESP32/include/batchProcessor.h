@@ -14,11 +14,12 @@ struct IncomingBatch
 {
   std::vector<uint8_t> data;
 };
+#define MaxBatchQueueSize 15
 
 /**
  * @brief Handle a parsed sensor batch: assign timestamps, log entries and try send.
  */
-static void handleParsedBatch(uint32_t sendMillis, std::vector<SensorData> &sensorBatch);
+void handleParsedBatch(uint32_t sendMillis, std::vector<SensorData> &sensorBatch);
 
 /**
  * @brief Parse binary payload into sendMillis and SensorData entries.
@@ -40,7 +41,7 @@ bool parseBatch(const std::vector<uint8_t> &buffer, uint32_t &sendMillis, std::v
  * Responsible for parsing the binary payload and delegating to the parsed
  * batch handler or logging an error when parsing fails.
  */
-static void processSingleBatch(const IncomingBatch &incoming);
+void processSingleBatch(const IncomingBatch &incoming);
 
 /**
  * @brief Background task that processes queued incoming batches.

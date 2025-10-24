@@ -75,9 +75,4 @@ bool sendJsonToServer(const String &jsonString, int batchId);
  */
 bool postBatchToServer(const std::vector<SensorData> &batch, int batchID);
 
-/**
- * @brief Timestamp of the last received data (millis() value).
- * @note Defined in wifiHandler.cpp
- */
-
 #endif

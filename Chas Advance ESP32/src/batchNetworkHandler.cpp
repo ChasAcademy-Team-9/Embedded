@@ -16,7 +16,6 @@ const unsigned long retryInterval = 10000; ///< ms between retry attempts
 bool retryInProgress = false;
 /**
  * @brief Millis timestamp when the last data packet arrived.
- * Useful for watchdogs or idle-detection logic.
  */
 unsigned long timeSinceDataReceived = 0;
 
@@ -65,6 +64,12 @@ void handleClientAsync()
   // Step 4: Push to processing queue
   {
     std::lock_guard<std::mutex> lock(queueMutex);
+    if(batchQueue.size() >= MaxBatchQueueSize)
+    {
+      Serial.println("Batch queue full, discarding incoming batch");
+      respond(client, 503); // Service unavailable
+      return;
+    }
     batchQueue.push({buffer});
   }
 

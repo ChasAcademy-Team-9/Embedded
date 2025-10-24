@@ -191,9 +191,10 @@ void assignAbsoluteTimestamps(uint32_t sendMillis, std::vector<SensorData> &batc
   latest.timestamp = lastMeasurementUnix;
 
   // Walk backwards for previous entries and convert using measured deltas
-  for (int i = static_cast<int>(batch.size()) - 2; i >= 0; --i)
+  for (size_t i = batch.size() - 2; i < batch.size(); --i)
   {
     uint32_t deltaMs = lastMeasurementMillis - batch[i].timestamp; // millis between measurements
     batch[i].timestamp = lastMeasurementUnix - (deltaMs / 1000);
+    if (i == 0) break;
   }
 }

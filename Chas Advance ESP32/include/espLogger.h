@@ -69,7 +69,7 @@ public:
      * @brief Append an error message to the error log with a timestamp.
      * @param msg Human readable error message
      * @note This function is not used anywhere in the current codebase 
-     *       - but kept for potential future use.
+     *       but kept for potential future use.
      */
     void logError(const String &msg);
 
