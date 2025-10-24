@@ -64,7 +64,7 @@ void test_median_excludes_sensor_failures(void)
     std::vector<SensorData> buffer;
     buffer.push_back({1, 0, 20.0, 40.0, false, NONE});
     buffer.push_back({1, 0, 22.0, 50.0, false, NONE});
-    buffer.push_back({1, 0, -99.0, -1.0, true, SENSOR_FAIL}); // Should be excluded
+    buffer.push_back({1, 0, -99.0, -1.0, true, SENSOR_FAIL}); // Will be excluded by calculateMedian
     buffer.push_back({1, 0, 24.0, 60.0, false, NONE});
     buffer.push_back({1, 0, 26.0, 70.0, false, NONE});
 
