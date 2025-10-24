@@ -64,24 +64,8 @@ Chas Advance Arduino/
 │   ├── README.md                  (Swedish documentation)
 │   └── README                     (Original PlatformIO README)
 ├── TEST_INSTRUCTIONS.md           (How to run tests)
-├── platformio.ini                 (Updated with native test environment)
+├── platformio.ini                 (Project configuration)
 └── TESTING_SUMMARY.md             (This file)
-```
-
-## Configuration Changes
-
-**platformio.ini** - Added native test environment:
-```ini
-[env:native]
-platform = native
-test_framework = unity
-build_flags = 
-    -std=c++11
-    -DUNIT_TEST
-```
-
-This allows tests to potentially run on desktop without hardware (for CI/CD pipelines).
-
 ## Running the Tests
 
 ### Basic test execution
