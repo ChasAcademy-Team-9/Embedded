@@ -22,12 +22,16 @@ extern unsigned long timeSinceDataReceived;
 void handleClientAsync();
 
 /**
- * @brief Validate the request line starts with "POST /data".
- * @param client Reference to WiFiClient to allow sending errors.
- * @param requestLine The first HTTP request line read from the socket.
- * @return true if valid POST /data request; false otherwise (and response sent).
+ * @brief Handle an incoming POST /data request.
+ * @param client Reference to the connected WiFiClient.
  */
-bool isValidPostRequest(WiFiClient &client, const String &requestLine);
+void handlePostRequest(WiFiClient& client);
+
+/**
+ * @brief Handle an incoming GET /time request.
+ * @param client Reference to the connected WiFiClient.
+ */
+void handleGetTimeRequest(WiFiClient& client);
 
 /**
  * @brief Parse HTTP headers from the client and return Content-Length.

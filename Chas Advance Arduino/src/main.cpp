@@ -32,13 +32,15 @@ void setup()
 
 void loop()
 {
+  updateCurrentESPTime();
+
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
   bool error = false;
   
   //generateMockData(temperature, humidity, error); For testing without a physical sensor
   
-  SensorData data = {sensorId, millis(), temperature, humidity, error, NONE};
+  SensorData data = {sensorId, currentESPTime, temperature, humidity, error, NONE};
   if (isnan(humidity) || isnan(temperature))
   {
     data.error = true;
@@ -56,7 +58,7 @@ void loop()
     sendDataToESP32(getBatchBuffer());
   }
 
-  logSensorData(data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
+  logSensorData(formatUnixTime(currentESPTime), data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
 
   delay(3000);
 }

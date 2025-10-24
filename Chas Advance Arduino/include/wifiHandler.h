@@ -7,11 +7,14 @@
 
 extern bool wifiConnecting;
 extern unsigned long wifiConnectStart;
+extern uint32_t currentESPTime;
 
 void connectToESPAccessPointAsync();
 bool attemptSendBatch();
 void sendDataToESP32(std::vector<SensorData> &batch);
 bool postToESP32(std::vector<SensorData> &batch);
 void updateLogger();
+uint32_t getTimeFromESP32();
+void updateCurrentESPTime();
 
 #endif // WIFIHANDLER_H

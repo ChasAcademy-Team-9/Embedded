@@ -19,7 +19,6 @@ extern ESPLogger logger;
  */
 void handleParsedBatch(uint32_t sendMillis, std::vector<SensorData> &sensorBatch)
 {
-  assignAbsoluteTimestamps(sendMillis, sensorBatch);
   Serial.printf("Received batch with %zu entries\n", sensorBatch.size());
 
   for (const auto &entry : sensorBatch)

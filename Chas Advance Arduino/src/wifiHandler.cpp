@@ -10,6 +10,9 @@ unsigned long lastRetrySendToESP32 = 0;
 unsigned long maxSendRetryTime = 2000;
 const uint8_t maxSendRetriesToESP32 = 3;
 uint8_t attemptToESP32Count = 0;
+uint32_t currentESPTime = 0;
+bool hasESPTime = false;
+unsigned long lastUpdateMillis = 0;
 
 #define MAX_FAILED_BATCHES 5
 FailedBatch failedBatches[MAX_FAILED_BATCHES];
@@ -19,6 +22,7 @@ void connectToESPAccessPointAsync()
 {
     if (!wifiConnecting && WiFi.status() != WL_CONNECTED)
     {
+        hasESPTime = false;
         WiFi.begin(ssid, password);
         wifiConnecting = true;
         wifiConnectStart = millis();
@@ -37,6 +41,11 @@ void connectToESPAccessPointAsync()
             wifiConnecting = false;
             Serial.println("\nWiFi connection timed out");
         }
+    }
+    if(WiFi.status() == WL_CONNECTED && !hasESPTime) {
+        currentESPTime = getTimeFromESP32();
+        Serial.print("Updated time from ESP32: ");
+        Serial.println(currentESPTime);
     }
 }
 
@@ -142,4 +151,62 @@ void updateLogger()
 {
     bool connected = (WiFi.status() == WL_CONNECTED);
     logger.update(connected);
+}
+
+uint32_t getTimeFromESP32()
+{
+    hasESPTime = false;
+
+    WiFiClient client;
+    if (!client.connect(host, port))
+    {
+        Serial.println("Connection failed");
+        return 0;
+    }
+
+    // Send GET request
+    client.print(String("GET /time HTTP/1.1\r\n") +
+                 "Host: " + host + "\r\n" +
+                 "Connection: close\r\n\r\n");
+
+    unsigned long start = millis();
+    bool headersEnded = false;
+
+    while (millis() - start < 3000)
+    {
+        // Skip headers line by line
+        while (client.available() && !headersEnded)
+        {
+            String line = client.readStringUntil('\n');
+            line.trim();
+            if (line.length() == 0)
+            {
+                headersEnded = true; // empty line -> end of headers
+            }
+        }
+
+        // After headers, read 4 bytes
+        if (headersEnded && client.available() >= 4)
+        {
+            uint32_t epochTime = 0;
+            client.read((uint8_t*)&epochTime, sizeof(epochTime));
+            client.stop();
+            hasESPTime = true;
+            return epochTime;
+        }
+    }
+
+    client.stop();
+    Serial.println("No valid response");
+    return 0;
+}
+
+
+void updateCurrentESPTime()
+{
+    unsigned long now = millis();
+    unsigned long deltaMs = now - lastUpdateMillis;  // elapsed since last call
+    lastUpdateMillis = now;
+
+    currentESPTime += (deltaMs / 1000);  // increment seconds
 }
