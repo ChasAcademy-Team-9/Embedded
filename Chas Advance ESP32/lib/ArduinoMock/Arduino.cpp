@@ -5,5 +5,6 @@
 
 #include "Arduino.h"
 
-// Global Serial instance for compilation
+// Actual definition of the global Serial instance.
+// This matches the 'extern SerialMock Serial;' declaration in test_main.cpp (line 11).
 SerialMock Serial;
