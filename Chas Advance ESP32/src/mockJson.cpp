@@ -1,6 +1,7 @@
 #include "MockJson.h"
 #include <Arduino.h>
 
+//DEPRECATED
 String generateMockJson()
 {
   char buf[32];

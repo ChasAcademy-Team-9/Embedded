@@ -35,7 +35,9 @@ void loop()
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
   bool error = false;
-
+  
+  //generateMockData(temperature, humidity, error); For testing without a physical sensor
+  
   SensorData data = {sensorId, millis(), temperature, humidity, error, NONE};
   if (isnan(humidity) || isnan(temperature))
   {

@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 
+//DEPRECATED
 // Funktioner för mockad sensordata
 String generateMockJson();
 

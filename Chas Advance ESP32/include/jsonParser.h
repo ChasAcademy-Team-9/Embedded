@@ -1,13 +1,22 @@
 #ifndef JSONPARSER_H
 #define JSONPARSER_H
+
 #include <Arduino.h>
-#include "sensorDataHandler.h"
+#include "sensorData.h"
 #include "log.h"
 
-void parseJson(String json);
-void parseJsonArray(JsonArray& arr, const String &timestamp);
-
-// Convert a vector of SensorEntry to a JSON string
+/**
+ * @brief Convert a vector of SensorData entries into a JSON array string.
+ *
+ * Produces a JSON document containing an array of objects with keys:
+ *  - "ArduinoID"
+ *  - "SensorTimeStamp" (formatted via formatUnixTime)
+ *  - "Temperature"
+ *  - "Humidity"
+ *
+ * @param batch Vector of SensorData entries to serialize
+ * @return String containing serialized JSON document (array)
+ */
 String serializeBatchToJson(const std::vector<SensorData> &batch);
 
-#endif
+#endif // JSONPARSER_H
