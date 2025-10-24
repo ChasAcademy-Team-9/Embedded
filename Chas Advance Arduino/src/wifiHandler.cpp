@@ -91,7 +91,6 @@ bool sendDataToESP32(std::vector<SensorData> &batch)
 
     return false;
 }
-}
 
 bool postToESP32(std::vector<SensorData> &batch)
 {
