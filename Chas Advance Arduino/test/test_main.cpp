@@ -57,10 +57,10 @@ void test_flash_data_preserves_sensor_id(void);
 void setup()
 {
     delay(2000); // Wait for board to stabilize
-    
+
     // Initialize the global logger once for all tests
     logger.begin();
-    
+
     UNITY_BEGIN();
 
     // Run batch handler tests

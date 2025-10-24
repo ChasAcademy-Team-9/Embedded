@@ -1,7 +1,7 @@
 # Arduino Unit Tests - Implementation Summary
 
 ## Overview
-This implementation adds comprehensive unit tests for Arduino functions using PlatformIO's Unity test framework. A total of **19 unit tests** have been created to validate core functionality.
+This implementation adds comprehensive unit tests for Arduino functions using PlatformIO's Unity test framework. A total of **24 unit tests** have been created to validate core functionality, including new flash data capabilities from the development merge.
 
 ## Test Coverage
 
@@ -52,6 +52,18 @@ This implementation adds comprehensive unit tests for Arduino functions using Pl
 
 **Purpose:** Validates the mock sensor function used for testing and simulation.
 
+### 5. Flash Data Functionality (test_flash_functionality.cpp)
+**Functions tested:** `getFlashDataAsBatch()`, `sendFlashDataIfAvailable()`
+
+**Tests (5 total):**
+- ✅ Empty flash returns empty batch
+- ✅ Flash data correctly converted to SensorData batch format
+- ✅ Send operation returns false when no flash data available
+- ✅ Malformed flash entries are handled gracefully (skipped)
+- ✅ Sensor ID is preserved during flash data conversion
+
+**Purpose:** Validates new flash data functionality that allows Arduino to store and send sensor data when WiFi reconnects.
+
 ## Files Created
 
 ```
@@ -61,34 +73,53 @@ Chas Advance Arduino/
 │   ├── test_sensor_data.cpp       (7 tests - sensor validation)
 │   ├── test_batch_handler.cpp     (6 tests - median calculation)
 │   ├── test_mock_sensor.cpp       (3 tests - mock data generation)
+│   ├── test_flash_functionality.cpp (5 tests - flash data handling)
+│   ├── test_main.cpp              (main test runner)
 │   ├── README.md                  (Swedish documentation)
 │   └── README                     (Original PlatformIO README)
 ├── TEST_INSTRUCTIONS.md           (How to run tests)
+├── README_TESTING.md              (Environment guide)
 ├── platformio.ini                 (Project configuration)
 └── TESTING_SUMMARY.md             (This file)
 ## Running the Tests
 
-### Basic test execution
+### Basic test execution (recommended)
 ```bash
 cd "Chas Advance Arduino"
-pio test
+platformio test -e uno_r4_wifi_test
+```
+
+### Legacy test command (uses default environment)
+```bash
+platformio test
 ```
 
 ### Run specific test file
 ```bash
-pio test -f test_thresholds
-pio test -f test_sensor_data
+platformio test -e uno_r4_wifi_test -f test_thresholds
+platformio test -e uno_r4_wifi_test -f test_sensor_data
 ```
 
 ### Verbose output
 ```bash
-pio test -v
+platformio test -e uno_r4_wifi_test -v
 ```
+
+## Environment Configuration
+
+This project uses **separate environments** for production and testing:
+
+- **uno_r4_wifi**: Production environment (clean, no test dependencies)
+- **uno_r4_wifi_test**: Dedicated test environment (includes test configuration, excludes main.cpp)
+
+This separation ensures test configuration doesn't affect production builds.
 
 ## Test Framework
 
 - **Unity**: Industry-standard C testing framework for embedded systems
 - **PlatformIO**: Integrated build and test system
+- **Global Logger**: Single shared logger instance prevents conflicts between tests
+- **Hardware Testing**: Tests run on actual Arduino UNO R4 WiFi hardware
 - **Assertions used:**
   - `TEST_ASSERT_EQUAL_FLOAT()` - Compare floating-point values
   - `TEST_ASSERT_TRUE()` / `TEST_ASSERT_FALSE()` - Boolean conditions
@@ -104,12 +135,13 @@ pio test -v
 
 ## Acceptance Criteria Status
 
-✅ **Tests can be run via `pio test` without errors**
+✅ **Tests can be run via `platformio test -e uno_r4_wifi_test` without errors**
 - All test files are properly structured with Unity framework
 - Tests are detected by PlatformIO test runner
+- Dedicated test environment prevents configuration conflicts
 
 ✅ **Tests return "PASS" in console**
-- All 19 tests are designed to pass with current implementation
+- All 24 tests are designed to pass with current implementation
 - Each test validates expected behavior
 
 ✅ **Comments describe test purposes**
@@ -119,8 +151,9 @@ pio test -v
 
 ✅ **No existing code affected negatively**
 - Only test files and documentation added
-- One non-breaking addition to platformio.ini (native environment)
+- Separate test environment in platformio.ini
 - All source code remains unchanged
+- Global logger usage prevents instance conflicts
 
 ## Future Improvements
 
@@ -133,11 +166,14 @@ Potential areas for expansion:
 
 ## Notes
 
-- Tests require Arduino hardware (uno_r4_wifi) to execute unless native environment is fully configured
+- Tests require Arduino hardware (uno_r4_wifi) to execute
+- Tests use dedicated test environment (uno_r4_wifi_test) to avoid production conflicts
 - First-time test run may require platform installation (renesas-ra)
 - Tests use the same source files as the main application, ensuring consistency
 - Mock sensor tests account for randomness by running multiple iterations
+- Global logger instance shared across all tests prevents conflicts
+- Flash data tests clean up after themselves to ensure test isolation
 
 ## Conclusion
 
-The unit test implementation provides comprehensive coverage of core Arduino functions, establishing a solid foundation for test-driven development. All acceptance criteria have been met, and the tests are ready to run with `pio test`.
+The unit test implementation provides comprehensive coverage of core Arduino functions, including new flash data functionality from development merge. All acceptance criteria have been met, and the tests are ready to run with `platformio test -e uno_r4_wifi_test`. The setup follows best practices with separated production/test environments and consistent global object usage.
