@@ -25,7 +25,9 @@ public:
     void clearAll();
     void update(bool wifiConnected);
     void logMedian(const SensorData &medianData);
-    void createLogFromBatch(std::vector<SensorData> &batch, unsigned long now);    
+    void createLogFromBatch(std::vector<SensorData> &batch, unsigned long now);
+    std::vector<SensorData> getFlashDataAsBatch(uint8_t sensorId = 1);
+    bool sendFlashDataIfAvailable(uint8_t sensorId = 1);
     bool loggerActive;
 
 private:
