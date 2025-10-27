@@ -11,10 +11,6 @@ unsigned long maxSendRetryTime = 2000;
 const uint8_t maxSendRetriesToESP32 = 3;
 uint8_t attemptToESP32Count = 0;
 
-#define MAX_FAILED_BATCHES 5
-FailedBatch failedBatches[MAX_FAILED_BATCHES];
-uint8_t failedBatchCount = 0;
-
 void connectToESPAccessPointAsync()
 {
     if (!wifiConnecting && WiFi.status() != WL_CONNECTED)
