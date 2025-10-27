@@ -18,7 +18,7 @@ void Logger::begin()
 // Add a new loge ntry
 void Logger::log(const LogEntry &entry)
 {
-   // Store entry in RAM circular buffer
+    // Store entry in RAM circular buffer
     buffer[head] = entry;
 
     // Persist to EEPROM at the matching position
@@ -93,7 +93,7 @@ void Logger::clearAll()
     {
         // Clear RAM copy
         memset(&buffer[i], 0, sizeof(LogEntry));
-         // Clear EEPROM slot byte-by-byte to avoid excessive wear
+        // Clear EEPROM slot byte-by-byte to avoid excessive wear
         int addr = getEepromAddr(i);
         for (size_t j = 0; j < sizeof(LogEntry); j++)
             EEPROM.update(addr + j, 0);
@@ -108,8 +108,8 @@ void Logger::clearAll()
 // Load logs from EEPROM into RAM buffer
 void Logger::load()
 {
-count = EEPROM.read(0);
-    head  = EEPROM.read(1);
+    count = EEPROM.read(0);
+    head = EEPROM.read(1);
 
     // Validate metadata values to prevent invalid buffer state
     if (count > LOGGER_MAX_ENTRIES)
@@ -228,96 +228,17 @@ std::vector<SensorData> Logger::getFlashDataAsBatch(uint8_t sensorId)
 
     for (size_t i = 0; i < size(); i++)
     {
-        String entryStr = getEntry(i);
-        if (entryStr.length() > 0)
-        {
-            // Parse the comma-separated string back to SensorData
-            // Format: "temperature,humidity,errorType"
-            int firstComma = entryStr.indexOf(',');
-            int secondComma = entryStr.indexOf(',', firstComma + 1);
+        LogEntry logEntry = readEntry(i);
 
-            if (firstComma != -1 && secondComma != -1)
-            {
-                SensorData entry;
-                entry.SensorId = sensorId;
-                entry.timestamp = millis(); // Use millis() since boot - actual timestamps not preserved in flash
-                entry.temperature = entryStr.substring(0, firstComma).toFloat();
-                entry.humidity = entryStr.substring(firstComma + 1, secondComma).toFloat();
-                entry.errorType = entryStr.substring(secondComma + 1).toInt();
-                entry.error = (entry.errorType != 0);
+        SensorData entry;
+        entry.SensorId = logEntry.sensorId;
+        entry.timestamp = logEntry.timestamp; // Use millis() since boot - actual timestamps not preserved in flash
+        entry.temperature = logEntry.temperature;
+        entry.humidity = logEntry.humidity;
+        entry.errorType = logEntry.errorType;
+        entry.error = (entry.errorType != 0);
 
-                flashBatch.push_back(entry);
-            }
-        }
-    }
-
-    return flashBatch;
-}
-
-bool Logger::sendFlashDataIfAvailable(uint8_t sensorId)
-{
-    if (size() == 0)
-    {
-        Serial.println("No data in flash memory to send");
-        return false;
-    }
-
-    Serial.print("Found ");
-    Serial.print(size());
-    Serial.println(" entries in flash memory. Attempting to send to ESP32...");
-
-    std::vector<SensorData> flashBatch = getFlashDataAsBatch(sensorId);
-
-    if (!flashBatch.empty())
-    {
-        Serial.print("Sending ");
-        Serial.print(flashBatch.size());
-        Serial.println(" flash entries using regular batch format");
-
-        bool sentSuccessfully = sendDataToESP32(flashBatch);
-        if (sentSuccessfully)
-        {
-            Serial.println("Flash data sent, clearing flash memory...");
-            clearAll();
-            return true;
-        }
-        else
-        {
-            Serial.println("Failed to send flash data to ESP32. Flash memory not cleared.");
-            return false;
-        }
-    }
-
-    return false;
-}
-
-std::vector<SensorData> Logger::getFlashDataAsBatch(uint8_t sensorId)
-{
-    std::vector<SensorData> flashBatch;
-
-    for (size_t i = 0; i < size(); i++)
-    {
-        String entryStr = getEntry(i);
-        if (entryStr.length() > 0)
-        {
-            // Parse the comma-separated string back to SensorData
-            // Format: "temperature,humidity,errorType"
-            int firstComma = entryStr.indexOf(',');
-            int secondComma = entryStr.indexOf(',', firstComma + 1);
-
-            if (firstComma != -1 && secondComma != -1)
-            {
-                SensorData entry;
-                entry.SensorId = sensorId;
-                entry.timestamp = millis(); // Use millis() since boot - actual timestamps not preserved in flash
-                entry.temperature = entryStr.substring(0, firstComma).toFloat();
-                entry.humidity = entryStr.substring(firstComma + 1, secondComma).toFloat();
-                entry.errorType = entryStr.substring(secondComma + 1).toInt();
-                entry.error = (entry.errorType != 0);
-
-                flashBatch.push_back(entry);
-            }
-        }
+        flashBatch.push_back(entry);
     }
 
     return flashBatch;
