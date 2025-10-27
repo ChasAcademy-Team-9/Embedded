@@ -15,7 +15,7 @@
 
 void test_timestamp_string_to_unix(void)
 {
-    // Test timestamp conversion
+    // Test: Verify timestamp string conversion to Unix timestamp format
     String testTime = "2025-01-01 12:00:00";
     uint32_t result = timestampStringToUnix(testTime);
 
@@ -25,7 +25,7 @@ void test_timestamp_string_to_unix(void)
 
 void test_format_unix_time(void)
 {
-    // Test unix time formatting
+    // Test: Verify Unix timestamp formatting to readable string format
     uint32_t testUnix = 1704110400; // 2024-01-01 12:00:00 UTC
     String result = formatUnixTime(testUnix);
 
@@ -36,7 +36,7 @@ void test_format_unix_time(void)
 
 void test_error_type_enum(void)
 {
-    // Test ErrorType enum values
+    // Test: Verify error type enumeration values are correctly defined
     TEST_ASSERT_EQUAL(0, NONE);
     TEST_ASSERT_EQUAL(1, TOO_LOW);
     TEST_ASSERT_EQUAL(2, TOO_HIGH);

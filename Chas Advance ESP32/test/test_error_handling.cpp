@@ -1,6 +1,9 @@
 /**
  * @file test_error_handling.cpp
- * @brief Unit tests for error handling scenarios
+ * @brief Unit tests for error handlivoid test_error_handling_median_with_all_errors(void)
+{
+    // Test: Verify median calculation when all sensor values are error values (-99.0)
+    std::vector<float> errorValues = {-99.0, -99.0, -99.0, -99.0};scenarios
  */
 
 #include <unity.h>
@@ -18,6 +21,7 @@
 
 void test_error_handling_null_json(void)
 {
+    // Test: System should handle empty/null JSON gracefully without crashing
     String nullJson = "";
 
     // Clear any previous output
@@ -33,6 +37,7 @@ void test_error_handling_null_json(void)
 
 void test_error_handling_malformed_json(void)
 {
+    // Test: Verify system handles malformed JSON without crashing or corrupting data
     String malformedJson = "{\"Temperature\":25.0,\"Humidity\":}"; // Missing value
 
     // Clear any previous output
@@ -47,6 +52,7 @@ void test_error_handling_malformed_json(void)
 
 void test_error_handling_wrong_data_types(void)
 {
+    // Test: Verify error handling when JSON contains wrong data types for sensor fields
     String wrongTypeJson = "{\"Temperature\":\"not_a_number\",\"Humidity\":55.0}";
 
     // Clear any previous output
@@ -63,6 +69,7 @@ void test_error_handling_wrong_data_types(void)
 
 void test_error_handling_empty_sensor_batch(void)
 {
+    // Test: Verify graceful handling of empty sensor data batch in serialization
     std::vector<SensorData> emptyBatch;
     String result = serializeBatchToJson(emptyBatch);
 
@@ -82,6 +89,7 @@ void test_error_handling_median_with_all_errors(void)
 
 void test_error_handling_median_empty_vector(void)
 {
+    // Test: Verify median calculation returns sensible default for completely empty data
     std::vector<float> emptyVector;
 
     float result = median(emptyVector);

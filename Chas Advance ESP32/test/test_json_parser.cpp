@@ -18,6 +18,7 @@
 
 void test_serialize_batch_to_json(void)
 {
+    // Test: Verify that sensor data batch is correctly serialized to JSON array format
     std::vector<SensorData> batch;
 
     SensorData data1;
@@ -49,6 +50,7 @@ void test_serialize_batch_to_json(void)
 
 void test_serialize_empty_batch(void)
 {
+    // Test: Verify graceful handling of empty sensor data batch
     std::vector<SensorData> batch;
     String jsonStr = serializeBatchToJson(batch);
 
@@ -64,6 +66,7 @@ void test_serialize_empty_batch(void)
 
 void test_parse_json_valid_data(void)
 {
+    // Test: Verify parsing of valid JSON sensor data with all required fields
     String validJson = "{\"SensorTimeStamp\":\"2024-01-01 12:00:00\",\"Temperature\":23.5,\"Humidity\":55.0,\"error\":false,\"errorType\":0}";
 
     // Clear any previous output
@@ -79,6 +82,7 @@ void test_parse_json_valid_data(void)
 
 void test_parse_json_invalid_data(void)
 {
+    // Test: Verify proper error handling for malformed JSON data
     String invalidJson = "{invalid json";
 
     // Clear any previous output
@@ -94,6 +98,7 @@ void test_parse_json_invalid_data(void)
 
 void test_parse_json_missing_fields(void)
 {
+    // Test: Verify error handling for JSON with missing required sensor fields
     String jsonMissingFields = "{\"Temperature\":20.0}";
 
     // Clear any previous output
@@ -109,6 +114,7 @@ void test_parse_json_missing_fields(void)
 
 void test_parse_json_array_functionality(void)
 {
+    // Test: Verify parsing of JSON array containing multiple sensor data objects
     // Create a JsonDocument for testing
     StaticJsonDocument<512> doc;
     JsonArray arr = doc.to<JsonArray>();

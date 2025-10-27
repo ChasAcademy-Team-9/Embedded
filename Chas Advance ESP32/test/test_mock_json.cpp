@@ -16,6 +16,7 @@
 
 void test_mock_json_format(void)
 {
+    // Test: Verify that generateMockJson() produces valid JSON with all required fields
     String jsonStr = generateMockJson();
 
     JsonDocument doc;
@@ -30,6 +31,7 @@ void test_mock_json_format(void)
 
 void test_mock_json_temperature_range(void)
 {
+    // Test: Verify mock returns expected sensor values (important for consistent testing)
     String jsonStr = generateMockJson();
     JsonDocument doc;
     deserializeJson(doc, jsonStr.c_str());
@@ -46,6 +48,7 @@ void test_mock_json_temperature_range(void)
 
 void test_mock_json_error_values(void)
 {
+    // Test: Verify error handling behavior in mock data (error=false scenario)
     String jsonStr = generateMockJson();
     JsonDocument doc;
     deserializeJson(doc, jsonStr.c_str());
