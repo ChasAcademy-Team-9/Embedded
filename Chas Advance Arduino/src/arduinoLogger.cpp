@@ -1,6 +1,7 @@
 #include "arduinoLogger.h"
 #include <EEPROM.h>
 #include "batchHandler.h"
+#include "wifiHandler.h"
 
 // Initialize the logger
 void Logger::begin()
@@ -219,4 +220,142 @@ void Logger::logMedian(SensorData &medianData)
         return;
 
     logDataEntry(medianData);
+}
+
+std::vector<SensorData> Logger::getFlashDataAsBatch(uint8_t sensorId)
+{
+    std::vector<SensorData> flashBatch;
+
+    for (size_t i = 0; i < size(); i++)
+    {
+        String entryStr = getEntry(i);
+        if (entryStr.length() > 0)
+        {
+            // Parse the comma-separated string back to SensorData
+            // Format: "temperature,humidity,errorType"
+            int firstComma = entryStr.indexOf(',');
+            int secondComma = entryStr.indexOf(',', firstComma + 1);
+
+            if (firstComma != -1 && secondComma != -1)
+            {
+                SensorData entry;
+                entry.SensorId = sensorId;
+                entry.timestamp = millis(); // Use millis() since boot - actual timestamps not preserved in flash
+                entry.temperature = entryStr.substring(0, firstComma).toFloat();
+                entry.humidity = entryStr.substring(firstComma + 1, secondComma).toFloat();
+                entry.errorType = entryStr.substring(secondComma + 1).toInt();
+                entry.error = (entry.errorType != 0);
+
+                flashBatch.push_back(entry);
+            }
+        }
+    }
+
+    return flashBatch;
+}
+
+bool Logger::sendFlashDataIfAvailable(uint8_t sensorId)
+{
+    if (size() == 0)
+    {
+        Serial.println("No data in flash memory to send");
+        return false;
+    }
+
+    Serial.print("Found ");
+    Serial.print(size());
+    Serial.println(" entries in flash memory. Attempting to send to ESP32...");
+
+    std::vector<SensorData> flashBatch = getFlashDataAsBatch(sensorId);
+
+    if (!flashBatch.empty())
+    {
+        Serial.print("Sending ");
+        Serial.print(flashBatch.size());
+        Serial.println(" flash entries using regular batch format");
+
+        bool sentSuccessfully = sendDataToESP32(flashBatch);
+        if (sentSuccessfully)
+        {
+            Serial.println("Flash data sent, clearing flash memory...");
+            clearAll();
+            return true;
+        }
+        else
+        {
+            Serial.println("Failed to send flash data to ESP32. Flash memory not cleared.");
+            return false;
+        }
+    }
+
+    return false;
+}
+
+std::vector<SensorData> Logger::getFlashDataAsBatch(uint8_t sensorId)
+{
+    std::vector<SensorData> flashBatch;
+
+    for (size_t i = 0; i < size(); i++)
+    {
+        String entryStr = getEntry(i);
+        if (entryStr.length() > 0)
+        {
+            // Parse the comma-separated string back to SensorData
+            // Format: "temperature,humidity,errorType"
+            int firstComma = entryStr.indexOf(',');
+            int secondComma = entryStr.indexOf(',', firstComma + 1);
+
+            if (firstComma != -1 && secondComma != -1)
+            {
+                SensorData entry;
+                entry.SensorId = sensorId;
+                entry.timestamp = millis(); // Use millis() since boot - actual timestamps not preserved in flash
+                entry.temperature = entryStr.substring(0, firstComma).toFloat();
+                entry.humidity = entryStr.substring(firstComma + 1, secondComma).toFloat();
+                entry.errorType = entryStr.substring(secondComma + 1).toInt();
+                entry.error = (entry.errorType != 0);
+
+                flashBatch.push_back(entry);
+            }
+        }
+    }
+
+    return flashBatch;
+}
+
+bool Logger::sendFlashDataIfAvailable(uint8_t sensorId)
+{
+    if (size() == 0)
+    {
+        Serial.println("No data in flash memory to send");
+        return false;
+    }
+
+    Serial.print("Found ");
+    Serial.print(size());
+    Serial.println(" entries in flash memory. Attempting to send to ESP32...");
+
+    std::vector<SensorData> flashBatch = getFlashDataAsBatch(sensorId);
+
+    if (!flashBatch.empty())
+    {
+        Serial.print("Sending ");
+        Serial.print(flashBatch.size());
+        Serial.println(" flash entries using regular batch format");
+
+        bool sentSuccessfully = sendDataToESP32(flashBatch);
+        if (sentSuccessfully)
+        {
+            Serial.println("Flash data sent, clearing flash memory...");
+            clearAll();
+            return true;
+        }
+        else
+        {
+            Serial.println("Failed to send flash data to ESP32. Flash memory not cleared.");
+            return false;
+        }
+    }
+
+    return false;
 }

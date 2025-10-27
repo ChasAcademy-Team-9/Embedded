@@ -54,7 +54,7 @@ bool attemptSendBatch()
     return millis() - lastRetrySendToESP32 >= maxSendRetryTime;
 }
 
-void sendDataToESP32(std::vector<SensorData> &batch)
+bool sendDataToESP32(std::vector<SensorData> &batch)
 {
     bool success = false;
 
@@ -75,7 +75,7 @@ void sendDataToESP32(std::vector<SensorData> &batch)
             resetBatchTimer();
             success = true;
             attemptToESP32Count = 0;
-            return;
+            return true;
         }
 
         Serial.println("Send failed, retrying...");
@@ -93,8 +93,11 @@ void sendDataToESP32(std::vector<SensorData> &batch)
 
         batch.clear();
         resetBatchTimer();
-        attemptToESP32Count = 0; // Reset counter
+        attemptToESP32Count = 0;
+        return false;
     }
+
+    return false;
 }
 
 bool postToESP32(std::vector<SensorData> &batch)
