@@ -14,51 +14,75 @@ void Logger::begin()
     load();
 }
 
-// Add a new log entry
-void Logger::log(const String &msg)
+// Add a new loge ntry
+void Logger::log(const LogEntry &entry)
 {
-    Serial.println("Logging on arduino: " + msg);
-    // Copy the string safely into the fixed-size buffer for the current head slot
-    // Truncates if msg is longer than LOGGER_MSG_LENGTH - 1 to avoid overflow
-    msg.substring(0, LOGGER_MSG_LENGTH - 1).toCharArray(buffer[head], LOGGER_MSG_LENGTH);
+   // Store entry in RAM circular buffer
+    buffer[head] = entry;
 
-    // Save the current entry into EEPROM at the corresponding address
-    // This rotates through slots in a circular buffer to spread flash wear
+    // Persist to EEPROM at the matching position
     saveEntry(head);
 
-    // Advance the head index (circular buffer logic)
+    // Move write pointer forward (wrap around if full)
     head = (head + 1) % LOGGER_MAX_ENTRIES;
 
-    // Increase count until maximum number of entries is reached
+    // Increment log count until buffer is full
     if (count < LOGGER_MAX_ENTRIES)
         count++;
 
-    // Persist the circular buffer metadata (head and count) in EEPROM
+    // Update metadata (count + head) in EEPROM
     saveMeta();
+}
+
+void Logger::logDataEntry(SensorData &data)
+{
+    LogEntry entry;
+    entry.timestamp = data.timestamp;
+    entry.temperature = data.temperature;
+    entry.humidity = data.humidity;
+    entry.sensorId = data.SensorId;
+    entry.errorType = data.errorType;
+
+    log(entry);
+    Serial.print("Entry logged: ");
+    printEntry(entry);
+    Serial.println();
 }
 
 // Print all stored logs in order from oldest to newest
 void Logger::printAll()
 {
-    Serial.println("---- Log start ----");
+    Serial.println("---- Log Start ----");
     for (size_t i = 0; i < count; i++)
     {
-        Serial.println(getEntry(i));
+        // Compute index in the circular buffer (oldest to newest)
+        size_t realIndex = (head + LOGGER_MAX_ENTRIES - count + i) % LOGGER_MAX_ENTRIES;
+        LogEntry logEntry = buffer[realIndex];
+        Serial.print("[");
+        if (i < 10)
+        {
+            Serial.print("Entry ");
+            Serial.print(i);
+            Serial.print(": ");
+            printEntry(logEntry);
+        }
+        Serial.println("]");
     }
-    Serial.println("---- Log end ----");
+    Serial.println("---- Log End ----");
 }
 
-// Retrieve a single log entry by index (0 = oldest)
-String Logger::getEntry(size_t index)
+void Logger::printEntry(LogEntry &entry)
 {
-    if (index >= count)
-        return ""; // Return empty string if out of bounds
-
-    // Calculate real index in circular buffer
-    size_t realIndex = (head + LOGGER_MAX_ENTRIES - count + index) % LOGGER_MAX_ENTRIES;
-
-    // Return as Arduino String for convenience
-    return String(buffer[realIndex]);
+    Serial.print("ts=");
+    Serial.print(formatUnixTime(entry.timestamp));
+    Serial.print(" sensor=");
+    Serial.print(entry.sensorId);
+    Serial.print(" T=");
+    Serial.print(entry.temperature, 2);
+    Serial.print("°C H=");
+    Serial.print(entry.humidity, 2);
+    Serial.print(" Errortype=");
+    Serial.print(entry.errorType);
 }
 
 // Clear all logs from RAM and EEPROM
@@ -66,51 +90,37 @@ void Logger::clearAll()
 {
     for (size_t i = 0; i < LOGGER_MAX_ENTRIES; i++)
     {
-        // Clear the RAM buffer
-        memset(buffer[i], 0, LOGGER_MSG_LENGTH);
-
-        // Clear the corresponding EEPROM memory
-        // EEPROM.update() only writes if value changes, reducing wear
-        for (int j = 0; j < LOGGER_MSG_LENGTH; j++)
-        {
-            EEPROM.update(10 + i * LOGGER_MSG_LENGTH + j, 0);
-        }
+        // Clear RAM copy
+        memset(&buffer[i], 0, sizeof(LogEntry));
+         // Clear EEPROM slot byte-by-byte to avoid excessive wear
+        int addr = getEepromAddr(i);
+        for (size_t j = 0; j < sizeof(LogEntry); j++)
+            EEPROM.update(addr + j, 0);
     }
 
-    // Reset counters
     head = 0;
     count = 0;
-
-    // Persist metadata to EEPROM
     saveMeta();
-
     Serial.println("Logs cleared");
 }
 
 // Load logs from EEPROM into RAM buffer
 void Logger::load()
 {
-    // Read metadata: total entries and head index
-    count = EEPROM.read(0);
-    head = EEPROM.read(1);
+count = EEPROM.read(0);
+    head  = EEPROM.read(1);
 
-    // Sanity checks to prevent invalid values (e.g., after flash corruption or first boot)
+    // Validate metadata values to prevent invalid buffer state
     if (count > LOGGER_MAX_ENTRIES)
         count = 0;
     if (head >= LOGGER_MAX_ENTRIES)
         head = 0;
 
-    // Load each log entry from EEPROM into RAM buffer
+    // Load all stored log entries into RAM buffer
     for (size_t i = 0; i < count; i++)
-    {
-        for (int j = 0; j < LOGGER_MSG_LENGTH; j++)
-        {
-            buffer[i][j] = EEPROM.read(10 + i * LOGGER_MSG_LENGTH + j);
-        }
+        buffer[i] = readEntry(i);
 
-        // Ensure null-termination for safety when converting to String
-        buffer[i][LOGGER_MSG_LENGTH - 1] = '\0';
-    }
+    Serial.print("Loaded " + String(count) + " log entries (head=" + String(head) + ")\n");
 }
 
 // Persist metadata (head index and count) in EEPROM
@@ -124,13 +134,30 @@ void Logger::saveMeta()
 // Persist a single log entry in EEPROM at the given index
 void Logger::saveEntry(size_t index)
 {
-    int addr = 10 + index * LOGGER_MSG_LENGTH; // Calculate EEPROM offset for this slot
+    int addr = getEepromAddr(index);
+    const uint8_t *ptr = reinterpret_cast<const uint8_t *>(&buffer[index]);
+    for (size_t i = 0; i < sizeof(LogEntry); i++)
+        EEPROM.update(addr + i, ptr[i]);
+}
 
-    for (int j = 0; j < LOGGER_MSG_LENGTH; j++)
-    {
-        // Only write bytes that have changed to reduce flash wear
-        EEPROM.update(addr + j, buffer[index][j]);
-    }
+// Read one log entry (binary) from EEPROM and return it as a LogEntry struct.
+LogEntry Logger::readEntry(size_t index)
+{
+    LogEntry entry;
+    int addr = getEepromAddr(index);
+    // Copy raw bytes from EEPROM into struct memory
+    uint8_t *ptr = reinterpret_cast<uint8_t *>(&entry);
+    for (size_t i = 0; i < sizeof(LogEntry); i++)
+        ptr[i] = EEPROM.read(addr + i);
+
+    return entry;
+}
+
+// Calculate EEPROM address for a given log entry index.
+// Takes into account metadata space at the beginning of EEPROM.
+size_t Logger::getEepromAddr(size_t index)
+{
+    return EEPROM_META_SIZE + index * sizeof(LogEntry);
 }
 
 void Logger::update(bool wifiConnected)
@@ -159,39 +186,37 @@ void Logger::update(bool wifiConnected)
         logNow = true;
         loggerActive = false;
     }
-    if(logNow)
-    createLogFromBatch(batch, now);
+    if (logNow)
+        createLogFromBatch(batch, now);
 }
 
 void Logger::createLogFromBatch(std::vector<SensorData> &batch, unsigned long now)
 {
-        bool errorLogged = false;
-        for (auto &entry : batch)
+    bool errorLogged = false;
+    for (auto &entry : batch)
+    {
+        if (entry.error)
         {
-            if (entry.error)
-            {
-                // Log the first error found
-                log(String(entry.temperature) + "," +
-                    String(entry.humidity) + "," +
-                    String(static_cast<int>(entry.errorType)));
-                errorLogged = true;
-                break;
-            }
+            logDataEntry(entry);
+            errorLogged = true;
+            break;
         }
+    }
 
-        if (!errorLogged)
-        {
-            // No errors, log median
-            SensorData medianData = calculateMedian(batch);
-            logMedian(medianData);
-        }
+    if (!errorLogged)
+    {
+        // No errors, log median
+        SensorData medianData = calculateMedian(batch);
+        logMedian(medianData);
+    }
 
-        timeSinceLog = now; // Reset timer
+    timeSinceLog = now; // Reset timer
 }
 
-void Logger::logMedian(const SensorData &medianData)
+void Logger::logMedian(SensorData &medianData)
 {
-    log(String(medianData.temperature) + "," +
-        String(medianData.humidity) + "," +
-        "0"); // 0 indicates no error for median log
+    if (medianData.error)
+        return;
+
+    logDataEntry(medianData);
 }

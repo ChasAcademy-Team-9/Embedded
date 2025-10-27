@@ -111,8 +111,9 @@ void handleGetTimeRequest(WiFiClient &client)
 {
   Serial.println("Received /time request");
     // Convert human-readable timestamp to UNIX epoch
-    uint32_t currentTime = timestampStringToUnix(getTimeStamp()); 
-    if (currentTime == 0)
+    time_t now;
+    time(&now); // current UNIX time (UTC)
+    if (now == 0)
     {
       Serial.println("Failed to get current time");
         client.println("HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n");
@@ -129,7 +130,7 @@ void handleGetTimeRequest(WiFiClient &client)
     client.println();
 
     // Send time as binary
-    client.write((uint8_t*)&currentTime, sizeof(currentTime));
+    client.write((uint8_t*)&now, sizeof(now));
     client.flush();
     client.stop();
 }

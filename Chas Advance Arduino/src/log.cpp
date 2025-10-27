@@ -39,12 +39,13 @@ void logSensorData(String timeStamp, float temperature, float humidity, ErrorTyp
 
 void logStartup()
 {
-    logEvent("","SYSTEM", "RESET", "OK"); //Pass empty timestamp since not available at startup
+    logEvent("", "SYSTEM", "RESET", "OK"); // Pass empty timestamp since not available at startup
 }
 
 String formatUnixTime(uint32_t ts)
 {
-    time_t t = ts;
+    const long offSet = 3600;        // +1 hour offset 
+    time_t t = ts + offSet;           
     struct tm *timeinfo = localtime(&t); // UTC
     char buffer[20];
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);

@@ -45,7 +45,7 @@ void connectToESPAccessPointAsync()
     if(WiFi.status() == WL_CONNECTED && !hasESPTime) {
         currentESPTime = getTimeFromESP32();
         Serial.print("Updated time from ESP32: ");
-        Serial.println(currentESPTime);
+        Serial.println(formatUnixTime(currentESPTime));
     }
 }
 
@@ -86,11 +86,10 @@ void sendDataToESP32(std::vector<SensorData> &batch)
         Serial.print("ERROR: Batch send failed after ");
         Serial.print(maxSendRetriesToESP32);
         Serial.println(" attempts. Logging median");
+        
         SensorData data = calculateMedian(batch);
         data.errorType = ErrorType::WiFi_FAIL;
-        logger.log(String(data.temperature) + "," +
-                   String(data.humidity) + "," +
-                   String(static_cast<int>(data.errorType)));
+        logger.logDataEntry(data);
 
         batch.clear();
         resetBatchTimer();
