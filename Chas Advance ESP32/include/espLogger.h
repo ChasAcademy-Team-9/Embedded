@@ -13,30 +13,16 @@
 #define MAX_ENTRIES 16
 
 /**
- * @brief Persistent on-flash representation of a batch.
- *
- * Stored layout on disk:
- *  - uint16_t numEntries
- *  - SensorData[numEntries]
- *  - uint32_t crc32 (CRC of entries array)
- */
-struct Batch
-{
-    uint16_t numEntries;
-    SensorData entries[MAX_ENTRIES];
-    uint32_t crc32; /**< CRC of timestamp + numEntries + entries */
-};
-
-/**
  * @brief Binary record used to log send attempts for batches.
  *
  * Stored compactly in /send_status.bin to save flash space.
  */
-struct SendStatusEntry {
-    uint32_t timestamp;     ///< Unix time or millis()
-    int32_t batchId;        ///< Batch ID
-    bool success;           ///< true = OK, false = FAIL
-    char message[40];       ///< Fixed-length message (null-terminated)
+struct SendStatusEntry
+{
+    uint32_t timestamp; ///< Unix time or millis()
+    int32_t batchId;    ///< Batch ID
+    bool success;       ///< true = OK, false = FAIL
+    char message[40];   ///< Fixed-length message (null-terminated)
 };
 
 // ----------------------------------------------------------------------------
@@ -68,7 +54,7 @@ public:
     /**
      * @brief Append an error message to the error log with a timestamp.
      * @param msg Human readable error message
-     * @note This function is not used anywhere in the current codebase 
+     * @note This function is not used anywhere in the current codebase
      *       but kept for potential future use.
      */
     void logError(const String &msg);
@@ -149,8 +135,8 @@ public:
     void printEntries(const std::vector<SensorData> &entries);
 
 private:
-    const char *ERROR_FILE = "/errors.txt";  /**< Path to error log file */
-    const size_t MAX_BATCHES = 20;           /**< Max number of batch files kept */
+    const char *ERROR_FILE = "/errors.txt"; /**< Path to error log file */
+    const size_t MAX_BATCHES = 20;          /**< Max number of batch files kept */
 };
 
 #endif // ESPLOGGER_H
