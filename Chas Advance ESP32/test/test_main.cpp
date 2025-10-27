@@ -35,6 +35,17 @@ extern void test_error_handling_empty_sensor_batch(void);
 extern void test_error_handling_median_with_all_errors(void);
 extern void test_error_handling_median_empty_vector(void);
 
+// Unity requires these functions to be defined globally
+void setUp(void)
+{
+    // Global setup for all tests - currently unused
+}
+
+void tearDown(void)
+{
+    // Global teardown for all tests - currently unused
+}
+
 int main()
 {
     UNITY_BEGIN();

@@ -14,17 +14,6 @@
 
 #include "mockJson.h"
 
-void setUp(void)
-{
-    // Unity auto-discovery mode requires setUp() to be defined in each test file,
-    // even when empty. Other test files use manual runner mode and don't need this.
-}
-
-void tearDown(void)
-{
-    // Unity auto-discovery mode requires tearDown() to be defined in each test file,
-    // even when empty. Other test files use manual runner mode and don't need this.
-}
 void test_mock_json_format(void)
 {
     String jsonStr = generateMockJson();
@@ -72,5 +61,3 @@ void test_mock_json_error_values(void)
     TEST_ASSERT_EQUAL_FLOAT(25.0, temp);
     TEST_ASSERT_EQUAL_FLOAT(50.0, hum);
 }
-
-// Test functions are automatically discovered by Unity
