@@ -18,10 +18,10 @@ void setup()
 
   initWifi();
 
-  //Initialize logger
+  // Initialize logger
   logger.begin();
   logStartup();
-  //logger.clearBatches(); // For testing, clear old batches
+  // logger.clearBatches(); // For testing, clear old batches
 
   // Print all previous log entries
   logger.printBatches();
@@ -37,4 +37,3 @@ void loop()
   handleClientAsync();
   trySendPendingBatches();
 }
-
