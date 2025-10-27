@@ -15,6 +15,7 @@
 #include <ctime>
 #include <cstdio>
 #include <cstddef>
+#include <cmath>
 
 #ifdef NATIVE_BUILD
 #include <vector>
@@ -44,6 +45,12 @@ public:
     {
         char buffer[32];
         sprintf(buffer, "%d", value);
+        data = buffer;
+    }
+    String(unsigned int value)
+    {
+        char buffer[32];
+        sprintf(buffer, "%u", value);
         data = buffer;
     }
     String(float value)
@@ -82,6 +89,47 @@ public:
     {
         size_t pos = data.find(str);
         return (pos != std::string::npos) ? (int)pos : -1;
+    }
+
+    // Additional String methods needed by ESP32 code
+    bool startsWith(const String &str) const
+    {
+        return data.substr(0, str.length()) == str.data;
+    }
+    bool startsWith(const char *str) const
+    {
+        return data.substr(0, strlen(str)) == str;
+    }
+    bool endsWith(const String &str) const
+    {
+        if (str.length() > data.length())
+            return false;
+        return data.substr(data.length() - str.length()) == str.data;
+    }
+    bool endsWith(const char *str) const
+    {
+        size_t len = strlen(str);
+        if (len > data.length())
+            return false;
+        return data.substr(data.length() - len) == str;
+    }
+    String substring(int from) const
+    {
+        if (from < 0 || from >= (int)data.length())
+            return String("");
+        return String(data.substr(from));
+    }
+    String substring(int from, int to) const
+    {
+        if (from < 0 || from >= (int)data.length())
+            return String("");
+        if (to < from || to > (int)data.length())
+            to = data.length();
+        return String(data.substr(from, to - from));
+    }
+    int toInt() const
+    {
+        return atoi(data.c_str());
     }
 
     // For ArduinoJson compatibility (Stream interface)
@@ -141,6 +189,19 @@ struct SerialMock
     void println(const String &str) { lastPrintln = str; }
     void print(const char *str) { lastPrint = String(str); }
     void println(const char *str) { lastPrintln = String(str); }
+    void println(int value) { lastPrintln = String(value); }
+    void println(unsigned int value) { lastPrintln = String(value); }
+    void println(float value) { lastPrintln = String(value); }
+    void println() { lastPrintln = String("\n"); }
+
+    // Printf support with variadic template
+    template <typename... Args>
+    void printf(const char *format, Args... args)
+    {
+        char buffer[512];
+        snprintf(buffer, sizeof(buffer), format, args...);
+        lastPrint = String(buffer);
+    }
 };
 
 // Global Serial instance - defined in test_main.cpp to avoid multiple definitions
@@ -159,6 +220,23 @@ inline int random(int min, int max)
 }
 
 inline void delay(int milliseconds)
+{
+    // Mock: do nothing in tests
+}
+
+// Mock millis function
+inline unsigned long millis()
+{
+    static unsigned long start_time = 0;
+    if (start_time == 0)
+    {
+        start_time = time(nullptr) * 1000;
+    }
+    return (time(nullptr) * 1000) - start_time;
+}
+
+// Mock configTime function
+inline void configTime(long gmtOffset_sec, int daylightOffset_sec, const char *ntpServer)
 {
     // Mock: do nothing in tests
 }
