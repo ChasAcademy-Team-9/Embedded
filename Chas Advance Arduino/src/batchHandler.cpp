@@ -17,7 +17,9 @@ bool batchSensorReadings(const SensorData &data)
 
     if (millis() - batchStartTime >= batchSendInterval)
     {
+#ifdef DEBUG
         Serial.println(millis() - batchStartTime);
+#endif
         Serial.println("Batch interval reached, preparing to send batch");
         return true; // Start to attempt sending the batch
     }
