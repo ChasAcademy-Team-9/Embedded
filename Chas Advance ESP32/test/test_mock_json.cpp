@@ -16,14 +16,15 @@
 
 void setUp(void)
 {
-    // Unity requires this function
+    // Unity auto-discovery mode requires setUp() to be defined in each test file,
+    // even when empty. Other test files use manual runner mode and don't need this.
 }
 
 void tearDown(void)
 {
-    // Unity requires this function
+    // Unity auto-discovery mode requires tearDown() to be defined in each test file,
+    // even when empty. Other test files use manual runner mode and don't need this.
 }
-
 void test_mock_json_format(void)
 {
     String jsonStr = generateMockJson();
