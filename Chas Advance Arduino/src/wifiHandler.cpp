@@ -42,8 +42,13 @@ void connectToESPAccessPointAsync()
             Serial.println("\nWiFi connection timed out");
         }
     }
-    if(WiFi.status() == WL_CONNECTED && !hasESPTime) {
-        currentESPTime = getTimeFromESP32();
+    if (WiFi.status() == WL_CONNECTED && !hasESPTime)
+    {
+        if (currentESPTime = getTimeFromESP32() == 0)
+        {
+            Serial.println("Failed to get time from ESP32");
+            return;
+        }
         Serial.print("Updated time from ESP32: ");
         Serial.println(formatUnixTime(currentESPTime));
     }
@@ -86,7 +91,7 @@ bool sendDataToESP32(std::vector<SensorData> &batch)
         Serial.print("ERROR: Batch send failed after ");
         Serial.print(maxSendRetriesToESP32);
         Serial.println(" attempts. Logging median");
-        
+
         SensorData data = calculateMedian(batch);
         data.errorType = ErrorType::WiFi_FAIL;
         logger.logDataEntry(data);
@@ -192,7 +197,7 @@ uint32_t getTimeFromESP32()
         {
             uint32_t epochTime = 0;
             // Protocol: server must send timestamp as 4 bytes (uint32_t, little-endian)
-            client.read((uint8_t*)&epochTime, sizeof(uint32_t));
+            client.read((uint8_t *)&epochTime, sizeof(uint32_t));
             client.stop();
             hasESPTime = true;
             return epochTime;
@@ -204,12 +209,11 @@ uint32_t getTimeFromESP32()
     return 0;
 }
 
-
 void updateCurrentESPTime()
 {
     unsigned long now = millis();
-    unsigned long deltaMs = now - lastUpdateMillis;  // elapsed since last call
+    unsigned long deltaMs = now - lastUpdateMillis; // elapsed since last call
     lastUpdateMillis = now;
 
-    currentESPTime += (deltaMs / 1000);  // increment seconds
+    currentESPTime += (deltaMs / 1000); // increment seconds
 }
