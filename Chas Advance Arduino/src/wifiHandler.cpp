@@ -191,7 +191,8 @@ uint32_t getTimeFromESP32()
         if (headersEnded && client.available() >= 4)
         {
             uint32_t epochTime = 0;
-            client.read((uint8_t*)&epochTime, sizeof(epochTime));
+            // Protocol: server must send timestamp as 4 bytes (uint32_t, little-endian)
+            client.read((uint8_t*)&epochTime, sizeof(uint32_t));
             client.stop();
             hasESPTime = true;
             return epochTime;

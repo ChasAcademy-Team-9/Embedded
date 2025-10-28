@@ -8,7 +8,7 @@
 struct SensorData
 {
     uint8_t SensorId;    /**< ID of the sensor */
-    uint32_t timestamp;   /**< Millis since boot updated with actual ESP time when available*/
+    uint32_t timestamp;   /**< Unix timestamp (seconds since epoch) from ESP32, or 0 if not yet synced */
     float temperature;    /**< Temperature value */
     float humidity;       /**< Humidity value */
     bool error;           /**< Whether there was an error in this reading */

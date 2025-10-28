@@ -44,9 +44,9 @@ void logStartup()
 
 String formatUnixTime(uint32_t ts)
 {
-    const long offSet = 3600;        // +1 hour offset 
-    time_t t = ts + offSet;           
-    struct tm *timeinfo = localtime(&t); // UTC
+    const long offset = 3600;        // +1 hour offset 
+    time_t t = ts + offset;           
+    struct tm *timeinfo = localtime(&t); // Local time
     char buffer[20];
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
     return String(buffer);

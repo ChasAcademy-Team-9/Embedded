@@ -125,7 +125,7 @@ void handleGetTimeRequest(WiFiClient &client)
     Serial.println("Sending current time to client");
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: application/octet-stream"); // raw bytes
-    client.println("Content-Length: 4");
+    client.println("Content-Length: " + String(sizeof(now)));
     client.println("Connection: close");
     client.println();
 

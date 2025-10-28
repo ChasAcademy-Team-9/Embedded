@@ -232,7 +232,7 @@ std::vector<SensorData> Logger::getFlashDataAsBatch(uint8_t sensorId)
 
         SensorData entry;
         entry.SensorId = logEntry.sensorId;
-        entry.timestamp = logEntry.timestamp; // Use millis() since boot - actual timestamps not preserved in flash
+        entry.timestamp = logEntry.timestamp;
         entry.temperature = logEntry.temperature;
         entry.humidity = logEntry.humidity;
         entry.errorType = logEntry.errorType;

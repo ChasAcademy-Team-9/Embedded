@@ -56,7 +56,7 @@ SensorData calculateMedian(std::vector<SensorData> &buffer)
         std::sort(vec.begin(), vec.end());
         size_t mid = vec.size() / 2;
         return (vec.size() % 2 != 0) ? vec[mid]
-                                     : static_cast<uint32_t>((vec[mid - 1] + vec[mid]) / 2);
+                                     : static_cast<uint32_t>((static_cast<uint64_t>(vec[mid - 1]) + static_cast<uint64_t>(vec[mid])) / 2);
     };
 
     SensorData medianData;
