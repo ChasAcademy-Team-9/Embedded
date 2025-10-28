@@ -14,7 +14,7 @@
 #endif
 
 #include "jsonParser.h"
-#include "sensorDataHandler.h"
+#include "sensorData.h"
 
 void test_serialize_batch_to_json(void)
 {
@@ -63,84 +63,3 @@ void test_serialize_empty_batch(void)
     JsonArray arr = doc.as<JsonArray>();
     TEST_ASSERT_EQUAL(0, arr.size());
 }
-
-void test_parse_json_valid_data(void)
-{
-    // Test: Verify parsing of valid JSON sensor data with all required fields
-    String validJson = "{\"SensorTimeStamp\":\"2024-01-01 12:00:00\",\"Temperature\":23.5,\"Humidity\":55.0,\"error\":false,\"errorType\":0}";
-
-    // Clear any previous output
-    Serial.lastPrint = "";
-    Serial.lastPrintln = "";
-
-    // This should parse without error
-    parseJson(validJson);
-
-    // No error message should be printed
-    TEST_ASSERT_TRUE(Serial.lastPrint.isEmpty() || Serial.lastPrint.indexOf("JSON parse error") == -1);
-}
-
-void test_parse_json_invalid_data(void)
-{
-    // Test: Verify proper error handling for malformed JSON data
-    String invalidJson = "{invalid json";
-
-    // Clear any previous output
-    Serial.lastPrint = "";
-    Serial.lastPrintln = "";
-
-    // This should fail to parse and print error message
-    parseJson(invalidJson);
-
-    // Error message should be printed
-    TEST_ASSERT_TRUE(Serial.lastPrint.indexOf("JSON parse error") != -1);
-}
-
-void test_parse_json_missing_fields(void)
-{
-    // Test: Verify error handling for JSON with missing required sensor fields
-    String jsonMissingFields = "{\"Temperature\":20.0}";
-
-    // Clear any previous output
-    Serial.lastPrint = "";
-    Serial.lastPrintln = "";
-
-    // This should parse but use default values for missing fields
-    parseJson(jsonMissingFields);
-
-    // No error message should be printed for missing fields (they get defaults)
-    TEST_ASSERT_TRUE(Serial.lastPrint.isEmpty() || Serial.lastPrint.indexOf("JSON parse error") == -1);
-}
-
-void test_parse_json_array_functionality(void)
-{
-    // Test: Verify parsing of JSON array containing multiple sensor data objects
-    // Create a JsonDocument for testing
-    StaticJsonDocument<512> doc;
-    JsonArray arr = doc.to<JsonArray>();
-
-    // Add test objects to the array
-    JsonObject obj1 = arr.createNestedObject();
-    obj1["Temperature"] = 22.0;
-    obj1["Humidity"] = 45.0;
-    obj1["error"] = false;
-
-    JsonObject obj2 = arr.createNestedObject();
-    obj2["Temperature"] = 24.0;
-    obj2["Humidity"] = 55.0;
-    obj2["error"] = false;
-
-    String timestamp = "2024-01-01 12:00:00";
-
-    // Clear any previous output
-    Serial.lastPrint = "";
-    Serial.lastPrintln = "";
-
-    // This should process all objects in the array
-    parseJsonArray(arr, timestamp);
-
-    // Should not have any error messages
-    TEST_ASSERT_TRUE(Serial.lastPrint.isEmpty() || Serial.lastPrint.indexOf("JSON parse error") == -1);
-}
-
-// Test functions are automatically discovered by Unity

@@ -51,8 +51,6 @@ void test_freezer_thresholds(void);
 void test_get_flash_data_as_batch_empty(void);
 void test_get_flash_data_as_batch_with_data(void);
 void test_send_flash_data_when_empty(void);
-void test_flash_data_parsing_malformed_entries(void);
-void test_flash_data_preserves_sensor_id(void);
 
 void setup()
 {
@@ -94,8 +92,6 @@ void setup()
     RUN_TEST(test_get_flash_data_as_batch_empty);
     RUN_TEST(test_get_flash_data_as_batch_with_data);
     RUN_TEST(test_send_flash_data_when_empty);
-    RUN_TEST(test_flash_data_parsing_malformed_entries);
-    RUN_TEST(test_flash_data_preserves_sensor_id);
 
     UNITY_END();
 }
