@@ -29,9 +29,9 @@ extern WiFiServer server;
 /**
  * @brief Poll server.available() and handle a single connection if present.
  *
- * This non-blocking routine should be called frequently from the main loop
- * or scheduled task. Successful POST payloads are enqueued for background
- * processing and an immediate 200 is returned to the sender.
+ * Called frequently from the main loop. Forwards successful POST/GET payloads to
+ * handler-functions.
+ * 
  */
 void handleClientAsync()
 {
@@ -39,13 +39,35 @@ void handleClientAsync()
   if (!client)
     return;
 
-  // Step 1: Read request line
   String requestLine = client.readStringUntil('\n');
   requestLine.trim();
-  if (!isValidPostRequest(client, requestLine))
-    return;
+  if (requestLine.startsWith("POST /data"))
+  {
+    handlePostRequest(client);
+  }
+  else if (requestLine.startsWith("GET /time"))
+  {
+    handleGetTimeRequest(client);
+  }
+  else
+  {
+    client.println("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+    client.stop();
+    return ;
+  }
+}
 
-  // Step 2: Read headers and Content-Length
+/**
+ * @brief Handle a valid POST /data request from client.
+ *
+ * Reads headers, validates Content-Length, reads binary body, enqueues for
+ * processing, and sends immediate HTTP response.
+ * @param client Reference to connected WiFiClient.
+ */
+
+void handlePostRequest(WiFiClient &client)
+{
+  // Step 1: Read headers and Content-Length
   int contentLength = readContentLength(client);
   if (contentLength <= 0 || contentLength > maxRequestBodySize)
   {
@@ -53,7 +75,7 @@ void handleClientAsync()
     return;
   }
 
-  // Step 3: Read binary body
+  // Step 2: Read binary body
   std::vector<uint8_t> buffer;
   if (!readRequestBody(client, buffer, contentLength))
   {
@@ -61,10 +83,10 @@ void handleClientAsync()
     return;
   }
 
-  // Step 4: Push to processing queue
+  // Step 3: Push to processing queue
   {
     std::lock_guard<std::mutex> lock(queueMutex);
-    if(batchQueue.size() >= MaxBatchQueueSize)
+    if (batchQueue.size() >= MaxBatchQueueSize)
     {
       Serial.println("Batch queue full, discarding incoming batch");
       respond(client, 503); // Service unavailable
@@ -73,9 +95,44 @@ void handleClientAsync()
     batchQueue.push({buffer});
   }
 
-  // Step 5: Immediate response
+  // Step 4: Immediate response
   respond(client, 200);
   timeSinceDataReceived = millis(); // Update last-received timestamp
+}
+
+/**
+ * @brief Handle a GET /time request from client.
+ * 
+ * Responds with current time as plain text.
+ * @param client Reference to connected WiFiClient.
+ */
+void handleGetTimeRequest(WiFiClient &client)
+{
+    time_t now;
+    time(&now); // current UNIX time (UTC)
+    uint32_t epoch = (uint32_t)now; // truncate to 32 bits
+
+    if (now == 0)
+    {
+      Serial.println("Failed to get current time");
+        client.println("HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n");
+        client.stop();
+        return;
+    }
+
+    // Send HTTP headers
+    Serial.print("Sending current time to client: ");
+    Serial.println(formatUnixTime(epoch));
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/octet-stream"); // raw bytes
+    client.println("Content-Length: " + String(sizeof(epoch)));
+    client.println("Connection: close");
+    client.println();
+
+    // Send time as binary
+    client.write((uint8_t*)&epoch, sizeof(epoch));
+    client.flush();
+    client.stop();
 }
 
 /**
@@ -153,7 +210,7 @@ bool postBatchToServer(const std::vector<SensorData> &batch, int batchId)
  */
 bool sendJsonToServer(const String &jsonString, int batchId)
 {
-  //return false; // For testing without server
+  // return false; // For testing without server
   if (WiFi.status() != WL_CONNECTED)
   {
     Serial.println("WiFi not connected - can't send batch to database!");
@@ -197,25 +254,6 @@ bool sendJsonToServer(const String &jsonString, int batchId)
 }
 
 //---------Helper functions for handleClientAsync() ---------
-/**
- * @brief Validate that the HTTP request line corresponds to POST /data.
- * If invalid, sends a 404 response and closes the client connection.
- *
- * @param client Client to respond/close on error.
- * @param requestLine First line of the HTTP request (method path HTTP/version).
- * @return true if requestLine starts with "POST /data", false otherwise.
- */
-bool isValidPostRequest(WiFiClient &client, const String &requestLine)
-{
-  if (!requestLine.startsWith("POST /data"))
-  {
-    client.println("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
-    client.stop();
-    return false;
-  }
-  return true;
-}
-
 /**
  * @brief Read HTTP headers until the blank line and extract Content-Length.
  *

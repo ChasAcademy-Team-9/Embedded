@@ -29,8 +29,10 @@ void test_get_flash_data_as_batch_with_data(void)
     logger.clearAll();
 
     // Add some test data to flash
-    logger.log("25.5,60.0,0"); // Temperature, humidity, no error
-    logger.log("26.0,65.0,1"); // Temperature, humidity, with error
+    LogEntry entry1 = {1625078400, 25.5, 60.0, 1, 0};
+    LogEntry entry2 = {1625078460, 26.0, 65.0, 1, 1};
+    logger.log(entry1); // Temperature, humidity, no error
+    logger.log(entry2); // Temperature, humidity, with error
 
     std::vector<SensorData> flashBatch = logger.getFlashDataAsBatch(1);
 
@@ -61,35 +63,4 @@ void test_send_flash_data_when_empty(void)
     bool result = logger.sendFlashDataIfAvailable(1);
 
     TEST_ASSERT_FALSE(result); // Should return false when no data to send
-}
-
-void test_flash_data_parsing_malformed_entries(void)
-{
-    logger.begin();
-    logger.clearAll();
-
-    // Add malformed entry (missing comma)
-    logger.log("25.5-60.0-0");
-
-    std::vector<SensorData> flashBatch = logger.getFlashDataAsBatch(1);
-
-    // Should handle malformed entries gracefully (skip them)
-    TEST_ASSERT_EQUAL(0, flashBatch.size());
-
-    logger.clearAll(); // Clean up
-}
-
-void test_flash_data_preserves_sensor_id(void)
-{
-    logger.begin();
-    logger.clearAll();
-
-    logger.log("22.0,55.0,0");
-
-    std::vector<SensorData> flashBatch = logger.getFlashDataAsBatch(5); // Use different sensor ID
-
-    TEST_ASSERT_EQUAL(1, flashBatch.size());
-    TEST_ASSERT_EQUAL(5, flashBatch[0].SensorId); // Should use the provided sensor ID
-
-    logger.clearAll(); // Clean up
 }

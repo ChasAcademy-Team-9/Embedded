@@ -4,60 +4,78 @@
 
 extern Logger logger;
 
-bool wifiConnecting = false;
-unsigned long wifiConnectStart = 0;
-unsigned long lastRetrySendToESP32 = 0;
-unsigned long maxSendRetryTime = 2000;
-const uint8_t maxSendRetriesToESP32 = 3;
-uint8_t attemptToESP32Count = 0;
+// Wifi
+bool isWifiConnecting = false;
+unsigned long wifiConnectStartMillis = 0;
 
-#define MAX_FAILED_BATCHES 5
-FailedBatch failedBatches[MAX_FAILED_BATCHES];
-uint8_t failedBatchCount = 0;
+// Data (network)
+unsigned long lastSendRetryMillis = 0;
+unsigned long sendRetryIntervalMs = 2000;
+const uint8_t maxSendRetryCount = 3;
+uint8_t currentSendAttemptCount = 0;
+
+// Time
+uint32_t currentESPTime = 0;
+bool shouldGetEspTime = true;
+bool isTimeInitialized = false;
+unsigned long lastUpdateMillis = 0;
+unsigned long lastTimeSyncMillis = 0;
+unsigned long timeSyncIntervalMs = 10 * 60 * 1000; //10 minutes
 
 void connectToESPAccessPointAsync()
 {
-    if (!wifiConnecting && WiFi.status() != WL_CONNECTED)
+    if (!isWifiConnecting && WiFi.status() != WL_CONNECTED)
     {
+        shouldGetEspTime = true;
         WiFi.begin(ssid, password);
-        wifiConnecting = true;
-        wifiConnectStart = millis();
+        isWifiConnecting = true;
+        wifiConnectStartMillis = millis();
         Serial.println("Starting WiFi connection...");
     }
 
-    if (wifiConnecting)
+    if (isWifiConnecting)
     {
         if (WiFi.status() == WL_CONNECTED)
         {
-            wifiConnecting = false;
+            isWifiConnecting = false;
             Serial.println("\nArduino connected to ESP32 Access Point");
         }
-        else if (millis() - wifiConnectStart > 10000)
+        else if (millis() - wifiConnectStartMillis > 10000)
         { // timeout 10s
-            wifiConnecting = false;
+            isWifiConnecting = false;
             Serial.println("\nWiFi connection timed out");
         }
+    }
+    if (WiFi.status() == WL_CONNECTED && shouldGetEspTime)
+    {
+        if (!getTimeFromESP32())
+        {
+            Serial.println("Failed to get time from ESP32");
+            return;
+        }
+        Serial.print("Updated time from ESP32: ");
+        Serial.println(formatUnixTime(currentESPTime));
     }
 }
 
 bool attemptSendBatch()
 {
-    return millis() - lastRetrySendToESP32 >= maxSendRetryTime;
+    return millis() - lastSendRetryMillis >= sendRetryIntervalMs;
 }
 
 bool sendDataToESP32(std::vector<SensorData> &batch)
 {
     bool success = false;
 
-    if (attemptToESP32Count < maxSendRetriesToESP32)
+    if (currentSendAttemptCount < maxSendRetryCount)
     {
-        lastRetrySendToESP32 = millis();
-        attemptToESP32Count++;
+        lastSendRetryMillis = millis();
+        currentSendAttemptCount++;
 
-        Serial.print("Sending batch attempt ");
-        Serial.print(attemptToESP32Count);
+        Serial.print("Sending batch. Attempt: ");
+        Serial.print(currentSendAttemptCount);
         Serial.print("/");
-        Serial.print(maxSendRetriesToESP32);
+        Serial.print(maxSendRetryCount);
         Serial.println("...");
 
         if (postToESP32(batch))
@@ -65,27 +83,26 @@ bool sendDataToESP32(std::vector<SensorData> &batch)
             batch.clear();
             resetBatchTimer();
             success = true;
-            attemptToESP32Count = 0;
+            currentSendAttemptCount = 0;
             return true;
         }
 
         Serial.println("Send failed, retrying...");
     }
 
-    if (!success && attemptToESP32Count >= maxSendRetriesToESP32)
+    if (!success && currentSendAttemptCount >= maxSendRetryCount)
     {
         Serial.print("ERROR: Batch send failed after ");
-        Serial.print(maxSendRetriesToESP32);
+        Serial.print(maxSendRetryCount);
         Serial.println(" attempts. Logging median");
+
         SensorData data = calculateMedian(batch);
         data.errorType = ErrorType::WiFi_FAIL;
-        logger.log(String(data.temperature) + "," +
-                   String(data.humidity) + "," +
-                   String(static_cast<int>(data.errorType)));
+        logger.logDataEntry(data);
 
         batch.clear();
         resetBatchTimer();
-        attemptToESP32Count = 0;
+        currentSendAttemptCount = 0;
         return false;
     }
 
@@ -102,7 +119,7 @@ bool postToESP32(std::vector<SensorData> &batch)
 
     if (!client.connect(host, port))
     {
-        Serial.println("Connection to ESP32 failed");
+        Serial.println("Connection to ESP32 failed when posting to ESP");
         return false;
     }
 
@@ -145,4 +162,82 @@ void updateLogger()
 {
     bool connected = (WiFi.status() == WL_CONNECTED);
     logger.update(connected);
+}
+
+bool getTimeFromESP32()
+{
+    shouldGetEspTime = true;
+
+    WiFiClient client;
+    if (!client.connect(host, port))
+    {
+        Serial.println("Conneciton to ESP failed when attempting to get time");
+        return false;
+    }
+
+    // Send GET request
+    client.print(String("GET /time HTTP/1.1\r\n") +
+                 "Host: " + host + "\r\n" +
+                 "Connection: close\r\n\r\n");
+
+    unsigned long start = millis();
+    bool headersEnded = false;
+
+    while (millis() - start < 3000)
+    {
+        // Skip headers line by line
+        while (client.available() && !headersEnded)
+        {
+            String line = client.readStringUntil('\n');
+            line.trim();
+            if (line.length() == 0)
+            {
+                headersEnded = true; // empty line -> end of headers
+            }
+        }
+
+        // After headers, read 4 bytes
+        if (headersEnded && client.available() >= 4)
+        {
+            uint32_t epochTime = 0;
+            // Protocol: server must send timestamp as 4 bytes (uint32_t, little-endian)
+            client.read((uint8_t *)&epochTime, sizeof(uint32_t));            
+            client.stop();
+            // Optional sanity check
+            if (epochTime == 0 || epochTime > 4102444800UL) // ~year 2100
+            {
+                Serial.print("Invalid time received from ESP32: ");
+                Serial.println(epochTime);
+                return false;
+            }
+            Serial.print("Got valid time from ESP: ");
+            Serial.println(epochTime);
+
+            shouldGetEspTime = false;
+            isTimeInitialized = true;
+            lastTimeSyncMillis = millis();
+            currentESPTime = epochTime;
+            return true;
+        }
+        delay(10); // Give time for more data to arrive
+    }
+
+    client.stop();
+    Serial.println("No valid response");
+    return false;
+}
+
+// Called in loop
+void updateCurrentESPTime()
+{
+    unsigned long now = millis();
+    unsigned long deltaMs = now - lastUpdateMillis; // elapsed since last call
+    lastUpdateMillis = now;
+
+    currentESPTime += (deltaMs / 1000); // increment seconds
+
+    if (now - lastTimeSyncMillis > timeSyncIntervalMs)
+    {
+        getTimeFromESP32();
+    }
 }

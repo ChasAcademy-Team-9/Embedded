@@ -1,8 +1,10 @@
 #include "log.h"
+#include <time.h>
 
-void logEvent(String eventType, String description, String status)
+void logEvent(String timeStamp, String eventType, String description, String status)
 {
-
+    Serial.print(timeStamp);
+    Serial.print(" ");
     Serial.print(eventType);
     Serial.print(" ");
     Serial.print(description);
@@ -10,7 +12,7 @@ void logEvent(String eventType, String description, String status)
     Serial.println(status);
 }
 
-void logSensorData(float temperature, float humidity, ErrorType errorType)
+void logSensorData(String timeStamp, float temperature, float humidity, ErrorType errorType)
 {
     char buffer[50];
     snprintf(buffer, sizeof(buffer), "Temp=%.1f Hum=%.1f", temperature, humidity);
@@ -18,24 +20,34 @@ void logSensorData(float temperature, float humidity, ErrorType errorType)
     switch (errorType)
     {
     case NONE:
-        logEvent("INFO", buffer, "OK");
+        logEvent(timeStamp, "INFO", buffer, "OK");
         break;
     case TOO_LOW:
-        logEvent("WARNING_Sensor data too low", buffer, "CHECK");
+        logEvent(timeStamp, "WARNING_Sensor data too low", buffer, "CHECK");
         break;
     case TOO_HIGH:
-        logEvent("WARNING_Sensor data too high", buffer, "CHECK");
+        logEvent(timeStamp, "WARNING_Sensor data too high", buffer, "CHECK");
         break;
     case SENSOR_FAIL:
-        logEvent("ERROR", "Sensor failure", "FAIL");
+        logEvent(timeStamp, "ERROR", "Sensor failure", "FAIL");
         break;
     default:
-        logEvent("ERROR", "Unknown error type", "FAIL");
+        logEvent(timeStamp, "ERROR", "Unknown error type", "FAIL");
         break;
     }
 }
 
 void logStartup()
 {
-    logEvent("SYSTEM", "RESET", "OK");
+    logEvent("", "SYSTEM", "RESET", "OK"); // Pass empty timestamp since not available at startup
+}
+
+String formatUnixTime(uint32_t ts)
+{
+    const long offset = 3600;        // +1 hour offset 
+    time_t t = ts + offset;           
+    struct tm *timeinfo = localtime(&t); // Local time
+    char buffer[20];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+    return String(buffer);
 }

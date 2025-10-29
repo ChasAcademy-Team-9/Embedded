@@ -24,7 +24,7 @@ extern const char *ntpServer;
 
 /// Time zone / NTP offsets (seconds)
 const long gmtOffset_sec = 3600;      /**< GMT offset in seconds */
-const int daylightOffset_sec = 3600;  /**< Daylight saving offset in seconds */
+const int daylightOffset_sec = 0;  /**< Daylight saving offset in seconds */
 
 /// Threshold (ms) after which "no data" is considered an error (70s)
 const int dataReceivedThreshold = 70000; // 70 seconds

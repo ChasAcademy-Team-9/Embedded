@@ -5,13 +5,17 @@
 #include <ArduinoJson.h>
 #include "batchHandler.h"
 
-extern bool wifiConnecting;
-extern unsigned long wifiConnectStart;
+extern bool isWifiConnecting;
+extern unsigned long wifiConnectStartMillis;
+extern uint32_t currentESPTime;
+extern bool isTimeInitialized;
 
 void connectToESPAccessPointAsync();
 bool attemptSendBatch();
 bool sendDataToESP32(std::vector<SensorData> &batch);
 bool postToESP32(std::vector<SensorData> &batch);
 void updateLogger();
+bool getTimeFromESP32();
+void updateCurrentESPTime();
 
 #endif // WIFIHANDLER_H
