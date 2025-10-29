@@ -37,6 +37,12 @@ void Logger::log(const LogEntry &entry)
 
 void Logger::logDataEntry(SensorData &data)
 {
+    if(data.timestamp == 0)
+    {
+        Serial.print("Error: Can't log entry with invalid timestamp: ");
+        Serial.println(formatUnixTime(data.timestamp));
+        return;
+    }
     LogEntry entry;
     entry.timestamp = data.timestamp;
     entry.temperature = data.temperature;

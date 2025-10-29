@@ -1,4 +1,3 @@
-#include <DHT.h>
 #include <WiFiS3.h>
 #include "MockSensor.h"
 #include "log.h"
@@ -8,10 +7,6 @@
 #include "batchHandler.h"
 #include "arduinoLogger.h"
 
-#define DHTPIN 8
-#define DHTTYPE DHT11
-
-DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
 TemperatureMode currentMode = ROOM_TEMP; // Default mode
 uint8_t sensorId = 1;
@@ -36,26 +31,19 @@ void setup()
 
 void loop()
 {
+  connectToESPAccessPointAsync();
+
   updateCurrentESPTime();
 
-  float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  bool error = false;
-  
-  //generateMockData(temperature, humidity, error); //For testing without a physical sensor
-  
-  SensorData data = {sensorId, currentESPTime, temperature, humidity, error, NONE};
-  if (isnan(humidity) || isnan(temperature))
+  if (isTimeInitialized)
   {
-    data.error = true;
-    data.errorType = SENSOR_FAIL;
+    SensorData data = measureSensorData(sensorId, currentESPTime, currentMode);
+    if (batchSensorReadings(data) && attemptSendBatch())
+    {
+      sendDataToESP32(getBatchBuffer());
+    }
+    logSensorData(formatUnixTime(currentESPTime), data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
   }
-  if (!data.error)
-  {
-    checkThresholds(data, getThresholdsForMode(currentMode));
-  }
-
-  connectToESPAccessPointAsync();
 
   // Check for WiFi reconnection and send flash data only then
   bool isWifiConnected = (WiFi.status() == WL_CONNECTED);
@@ -67,13 +55,6 @@ void loop()
   wasWifiConnected = isWifiConnected;
 
   updateLogger();
-
-  if (batchSensorReadings(data) && attemptSendBatch())
-  {
-    sendDataToESP32(getBatchBuffer());
-  }
-
-  logSensorData(formatUnixTime(currentESPTime), data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
 
   delay(3000);
 }

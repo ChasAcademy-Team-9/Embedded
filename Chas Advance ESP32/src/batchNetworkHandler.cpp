@@ -106,13 +106,12 @@ void handlePostRequest(WiFiClient &client)
  * Responds with current time as plain text.
  * @param client Reference to connected WiFiClient.
  */
-
 void handleGetTimeRequest(WiFiClient &client)
 {
-  Serial.println("Received /time request");
-    // Convert human-readable timestamp to UNIX epoch
     time_t now;
     time(&now); // current UNIX time (UTC)
+    uint32_t epoch = (uint32_t)now; // truncate to 32 bits
+
     if (now == 0)
     {
       Serial.println("Failed to get current time");
@@ -122,19 +121,19 @@ void handleGetTimeRequest(WiFiClient &client)
     }
 
     // Send HTTP headers
-    Serial.println("Sending current time to client");
+    Serial.print("Sending current time to client: ");
+    Serial.println(formatUnixTime(epoch));
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: application/octet-stream"); // raw bytes
-    client.println("Content-Length: " + String(sizeof(now)));
+    client.println("Content-Length: " + String(sizeof(epoch)));
     client.println("Connection: close");
     client.println();
 
     // Send time as binary
-    client.write((uint8_t*)&now, sizeof(now));
+    client.write((uint8_t*)&epoch, sizeof(epoch));
     client.flush();
     client.stop();
 }
-
 
 /**
  * @brief Try to send saved batches from storage with retry/backoff logic.

@@ -1,8 +1,14 @@
 #ifndef SENSORDATA_H
 #define SENSORDATA_H
 
+#include <DHT.h>
 #include "log.h"
 #include "thresholds.h"
+
+#define DHTPIN 8
+#define DHTTYPE DHT11
+
+extern DHT dht;
 
 #pragma pack(push, 1)
 struct SensorData
@@ -16,4 +22,5 @@ struct SensorData
 };
 #pragma pack(pop)
 bool checkThresholds(SensorData &data, const Thresholds &thresholds);
+SensorData measureSensorData(uint8_t sensorId, uint32_t currentESPTime, TemperatureMode currentMode);
 #endif
