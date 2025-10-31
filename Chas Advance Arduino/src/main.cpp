@@ -1,19 +1,18 @@
-#include <DHT.h>
+#include <WiFiS3.h>
 #include "MockSensor.h"
 #include "log.h"
 #include "wifiHandler.h"
-#include "jsonParser.h"
 #include <vector>
 #include "SensorData.h"
 #include "batchHandler.h"
+#include "arduinoLogger.h"
 
-#define DHTPIN 8
-#define DHTTYPE DHT11
-
-DHT dht(DHTPIN, DHTTYPE);
 Logger logger;
+TemperatureMode currentMode = ROOM_TEMP; // Default mode
+uint8_t sensorId = 1;
 
-std::vector<SensorData> batchBuffer;
+// Track WiFi connection state for flash data transfer
+bool wasWifiConnected = false;
 
 void setup()
 {
@@ -32,19 +31,30 @@ void setup()
 
 void loop()
 {
-  float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  bool error = false;
-
   connectToESPAccessPointAsync();
 
-  if (isnan(humidity) || isnan(temperature))
-    error = true;
+  updateCurrentESPTime();
+
+  if (isTimeInitialized)
+  {
+    SensorData data = measureSensorData(sensorId, currentESPTime, currentMode);
+    if (batchSensorReadings(data) && attemptSendBatch())
+    {
+      sendDataToESP32(getBatchBuffer());
+    }
+    logSensorData(formatUnixTime(currentESPTime), data.temperature, data.humidity, static_cast<ErrorType>(data.errorType));
+  }
+
+  // Check for WiFi reconnection and send flash data only then
+  bool isWifiConnected = (WiFi.status() == WL_CONNECTED);
+  if (isWifiConnected && !wasWifiConnected)
+  {
+    Serial.println("WiFi reconnected! Checking for flash data to send...");
+    logger.sendFlashDataIfAvailable(sensorId);
+  }
+  wasWifiConnected = isWifiConnected;
 
   updateLogger();
-  logSensorData(temperature, humidity, error);
-  SensorData data = {temperature, humidity, error};
-  batchSensorReadings(data);
 
-  delay(2000);
+  delay(3000);
 }

@@ -1,43 +1,46 @@
 #include "batchHandler.h"
-#include "jsonParser.h"
 #include "arduinoLogger.h"
 #include "wifiHandler.h"
+#include <algorithm>
 
 static std::vector<SensorData> batchBuffer;
-static unsigned long batchStartTime = 0;
-extern Logger logger;
+unsigned long batchSendInterval = 30000;
+unsigned long batchStartTime = 0;
 
-void batchSensorReadings(const SensorData &data)
+extern Logger logger;
+extern TemperatureMode currentMode;
+
+bool batchSensorReadings(const SensorData &data)
 {
     batchBuffer.push_back(data);
-
     if (batchStartTime == 0)
         batchStartTime = millis();
 
-    if (millis() - batchStartTime >= 30000)
+    if (millis() - batchStartTime >= batchSendInterval)
     {
-        String batchJson = createBatchJson(batchBuffer);
-        sendDataToESP32(batchJson);
-        batchBuffer.clear();
-        batchStartTime = millis();
+        Serial.println("Batch interval reached, preparing to send batch");
+        return true; // Start to attempt sending the batch
     }
+    return false;
 }
 
 SensorData calculateMedian(std::vector<SensorData> &buffer)
 {
+    std::vector<uint32_t> timestamps;
     std::vector<float> temps;
     std::vector<float> hums;
 
     for (const auto &data : buffer)
     {
-        if (!data.error)
+        if (data.errorType != ErrorType::SENSOR_FAIL)
         {
+            timestamps.push_back(data.timestamp);
             temps.push_back(data.temperature);
             hums.push_back(data.humidity);
         }
     }
 
-    auto median = [](std::vector<float> &vec) -> float
+    auto medianFloat = [](std::vector<float> &vec) -> float
     {
         if (vec.empty())
             return NAN;
@@ -46,10 +49,23 @@ SensorData calculateMedian(std::vector<SensorData> &buffer)
         return (vec.size() % 2 != 0) ? vec[mid] : (vec[mid - 1] + vec[mid]) / 2.0;
     };
 
+    auto medianUint32 = [](std::vector<uint32_t> &vec) -> uint32_t
+    {
+        if (vec.empty())
+            return 0;
+        std::sort(vec.begin(), vec.end());
+        size_t mid = vec.size() / 2;
+        return (vec.size() % 2 != 0) ? vec[mid]
+                                     : static_cast<uint32_t>((static_cast<uint64_t>(vec[mid - 1]) + static_cast<uint64_t>(vec[mid])) / 2);
+    };
+
     SensorData medianData;
-    medianData.temperature = median(temps);
-    medianData.humidity = median(hums);
+    medianData.SensorId = buffer.empty() ? 1 : buffer.front().SensorId;
+    medianData.timestamp = medianUint32(timestamps);
+    medianData.temperature = medianFloat(temps);
+    medianData.humidity = medianFloat(hums);
     medianData.error = temps.empty() || hums.empty();
+    medianData.errorType = medianData.error ? ErrorType::SENSOR_FAIL : ErrorType::NONE;
 
     return medianData;
 }
@@ -57,4 +73,9 @@ SensorData calculateMedian(std::vector<SensorData> &buffer)
 std::vector<SensorData> &getBatchBuffer()
 {
     return batchBuffer;
+}
+
+void resetBatchTimer()
+{
+    batchStartTime = millis();
 }

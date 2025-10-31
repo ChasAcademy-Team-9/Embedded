@@ -1,92 +1,91 @@
 #include "wifiHandler.h"
 #include "ESPSECRETS.h"
-#include "espLogger.h"
 
-unsigned long timeSinceDataReceived = 0;
-WebServer server;
-extern Logger logger;
+/**
+ * @brief Global HTTP server instance (listening socket).
+ * Constructed here and declared in header as extern.
+ */
+WiFiServer server;
 
+/**
+ * @brief Initialize WiFi and HTTP subsystems and configure NTP.
+ *
+ * Calls:
+ *  - connectToWiFi() to bring up STA interface,
+ *  - setupAccessPoint() to start softAP,
+ *  - setupHttpServer() to start the HTTP listener,
+ *  - configTime() to set NTP server and timezone offsets.
+ */
 void initWifi()
 {
   connectToWiFi();
   setupAccessPoint();
   setupHttpServer();
 
-  // Set up NTP time
+  // Configure NTP client/time library
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
 
+/**
+ * @brief Connect to WiFi STA network using credentials from ESPSECRETS.
+ *
+ * Blocks until connected. Retries indefinitely with a short backoff between
+ * attempts. Prints status to Serial on each try.
+ */
 void connectToWiFi()
 {
   WiFi.mode(WIFI_AP_STA);
-  WiFi.begin(sta_ssid, sta_password);
+  Serial.printf("Connecting to WiFi SSID '%s'\n", sta_ssid);
 
+  // Loop until connected
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
-    Serial.print(".");
+    Serial.print("Attempting to connect");
+    WiFi.begin(sta_ssid, sta_password);
+
+    // Wait for a single attempt to either succeed or timeout
+    const unsigned long ATTEMPT_TIMEOUT_MS = 10000UL; // 10s per attempt
+    unsigned long start = millis();
+    while (WiFi.status() != WL_CONNECTED && (millis() - start) < ATTEMPT_TIMEOUT_MS)
+    {
+      delay(500);
+      Serial.print(".");
+    }
+
+    if (WiFi.status() == WL_CONNECTED)
+      break;
+
+    // Attempt failed — wait a bit and retry
+    Serial.println("\nWifi connection attempt failed, retrying in 5s...");
+    delay(5000);
   }
-  // Connect to WiFi
+
   Serial.println("\nESP32 connected to WiFi");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 }
 
+/**
+ * @brief Start a soft Access Point so local devices can connect directly.
+ *
+ * Uses ap_ssid and ap_password from secrets.
+ */
 void setupAccessPoint()
 {
-  // Set up Access Point for Arduino to connect to
   WiFi.softAP(ap_ssid, ap_password);
   Serial.println("ESP32 AP started");
   Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
 }
 
+/**
+ * @brief Start the HTTP server and make it listen on port 80.
+ *
+ * This function currently only starts the server. Route registration occurs
+ * in handleClientAsync() which reads incoming connections from server.available().
+ */
 void setupHttpServer()
 {
-  // Define route
-  server.on("/data", HTTP_POST, [&]()
-            { handlePostRequest(); });
-
   server.begin(80);
   Serial.println("HTTP server started");
-}
-
-/* Function to handle POST requests to /data
-    It reads the JSON body, parses it, and logs the sensor data.*/
-void handlePostRequest()
-{
-  if (server.hasArg("plain"))
-  { // "plain" contains POST body
-    String body = server.arg("plain");
-
-    StaticJsonDocument<2048> doc;
-    DeserializationError error = deserializeJson(doc, body);
-
-    if (error)
-    {
-      Serial.print("JSON parse error: ");
-      Serial.println(error.c_str());
-      server.send(400, "text/plain", "Bad JSON");
-      return;
-    }
-
-    if (!doc.is<JsonArray>())
-    {
-      server.send(400, "text/plain", "Expected JSON array");
-      return;
-    }
-
-    parseJsonArray(doc.as<JsonArray>(), getTimeStamp());
-    server.send(200, "text/plain", "OK");
-    timeSinceDataReceived = millis();
-
-    // Data received from sensor, check API connection status and update logger
-    bool connected = (WiFi.status() == WL_CONNECTED); // Placeholder for actual server connection status
-    connected = random(0, 2); // Mock connection status for testing
-    logger.update(connected, doc.as<JsonArray>());
-  }
-  else
-  {
-    server.send(400, "text/plain", "No data received");
-  }
 }

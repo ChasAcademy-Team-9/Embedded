@@ -1,0 +1,12 @@
+# Secrets files
+**/ESPSECRETS.h
+**/ESPSECRETS.cpp
+**/ARDUINOSECRETS.h
+
+# PlatformIO
+.pio/
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db

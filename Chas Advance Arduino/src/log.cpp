@@ -1,9 +1,10 @@
 #include "log.h"
+#include <time.h>
 
-extern Logger logger;
-
-void logEvent(String eventType, String description, String status)
+void logEvent(String timeStamp, String eventType, String description, String status)
 {
+    Serial.print(timeStamp);
+    Serial.print(" ");
     Serial.print(eventType);
     Serial.print(" ");
     Serial.print(description);
@@ -11,21 +12,42 @@ void logEvent(String eventType, String description, String status)
     Serial.println(status);
 }
 
-void logSensorData(float temperature, float humidity, bool error)
+void logSensorData(String timeStamp, float temperature, float humidity, ErrorType errorType)
 {
-    if (error)
+    char buffer[50];
+    snprintf(buffer, sizeof(buffer), "Temp=%.1f Hum=%.1f", temperature, humidity);
+
+    switch (errorType)
     {
-        logEvent("ERROR", "No data", "FAIL");
-    }
-    else
-    {
-        char buffer[50];
-        snprintf(buffer, sizeof(buffer), "Temp=%.1f Hum=%.1f", temperature, humidity);
-        logEvent("INFO", buffer, "OK");
+    case NONE:
+        logEvent(timeStamp, "INFO", buffer, "OK");
+        break;
+    case TOO_LOW:
+        logEvent(timeStamp, "WARNING_Sensor data too low", buffer, "CHECK");
+        break;
+    case TOO_HIGH:
+        logEvent(timeStamp, "WARNING_Sensor data too high", buffer, "CHECK");
+        break;
+    case SENSOR_FAIL:
+        logEvent(timeStamp, "ERROR", "Sensor failure", "FAIL");
+        break;
+    default:
+        logEvent(timeStamp, "ERROR", "Unknown error type", "FAIL");
+        break;
     }
 }
 
 void logStartup()
 {
-    logEvent("SYSTEM", "RESET", "OK");
+    logEvent("", "SYSTEM", "RESET", "OK"); // Pass empty timestamp since not available at startup
+}
+
+String formatUnixTime(uint32_t ts)
+{
+    const long offset = 3600;        // +1 hour offset 
+    time_t t = ts + offset;           
+    struct tm *timeinfo = localtime(&t); // Local time
+    char buffer[20];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+    return String(buffer);
 }
