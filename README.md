@@ -78,7 +78,7 @@ The system includes advanced error handling, batch processing, flash storage and
 1. **Sensor Reading**: Arduino reads temperature and humidity from DHT sensor
 2. **Data Validation**: Check against thresholds for different modes (Room/Cooler/Freezer)
 3. **Batch Processing**: Median calculation for noise filtering
-4. **WiFi Transfer**: JSON data sent to ESP32 via HTTP POST
+4. **WiFi Transfer**: data sent to ESP32 via HTTP POST
 5. **Reception**: ESP32 receives, processes and forwards data
 6. **Error Handling**: Flash storage during connection problems
 
@@ -248,47 +248,58 @@ The ESP32 runs an HTTP server on port 80 with the following endpoints:
 | Method | Endpoint | Description | Content-Type |
 |--------|----------|-------------|--------------|
 | POST   | `/data`  | Receive single sensor reading | application/json |
-| POST   | `/batch` | Receive batch sensor data | application/json |
-| GET    | `/status`| Get system status | - |
+| GET    | `/time`| Get ESP32 time | - |
 
 ### Example API Usage
 
-#### Send single sensor reading:
-```bash
-curl -X POST http://192.168.4.1/data \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ArduinoID": 1,
-    "SensorTimeStamp": "2024-11-03T14:30:00Z",
-    "Temperature": 22.5,
-    "Humidity": 45.0,
-    "ErrorType": 0
-  }'
-```
+### Send sensordata batch (binary)
 
-#### Send batch data:
-```bash
-curl -X POST http://192.168.4.1/batch \
-  -H "Content-Type: application/json" \
-  -d '[
-    {
-      "ArduinoID": 1,
-      "SensorTimeStamp": "2024-11-03T14:30:00Z",
-      "Temperature": 22.5,
-      "Humidity": 45.0,
-      "ErrorType": 0
-    }
-  ]'
-```
+```cpp
+WiFiClient client;
+uint32_t sendMillis = millis();
+std::vector<SensorData> batch; // fill with multiple SensorData entries
+
+client.connect(host, 80);
+client.print("POST /data HTTP/1.1\r\n");
+client.print("Host: " + host + "\r\n");
+client.print("Content-Type: application/octet-stream\r\n");
+client.print("Content-Length: " + String(sizeof(sendMillis) + batch.size() * sizeof(SensorData)) + "\r\n");
+client.print("Connection: close\r\n\r\n");
+
+// Send binary batch
+client.write((uint8_t *)&sendMillis, sizeof(sendMillis));
+client.write((uint8_t *)batch.data(), batch.size() * sizeof(SensorData));
+client.flush();
+client.stop();
+
+
+
+#### Get time :
+
+WiFiClient client;
+client.connect(host, 80);
+client.print("GET /time HTTP/1.1\r\n");
+client.print("Host: " + host + "\r\n");
+client.print("Connection: close\r\n\r\n");
+
+// Read 4 bytes from server (little-endian uint32_t)
+uint32_t epochTime;
+while (client.available() < sizeof(uint32_t)) {
+    delay(10);
+}
+client.read((uint8_t *)&epochTime, sizeof(epochTime));
+client.stop();
+
+Serial.print("Current ESP32 time (epoch): ");
+Serial.println(epochTime);
 
 ### HTTP Response Codes
 
 | Code | Description | When |
 |------|-------------|------|
 | 200  | OK | Data received and processed successfully |
-| 400  | Bad Request | Invalid JSON format or missing required fields |
-| 422  | Unprocessable Entity | Valid JSON but sensor data contains errors (ErrorType != 0) |
-| 500  | Internal Server Error | ESP32 processing error |
+| 400  | Bad Request | content length might be wrong |
+| 503  | Internal Server Error | ESP32 processing error |
 
 ## Unit Testing
 
@@ -378,7 +389,6 @@ enum ErrorType {
     TOO_LOW = 2,
     TOO_HIGH = 3,
     WIFI_ERROR = 4,
-    JSON_ERROR = 5
 };
 ```
 
@@ -401,7 +411,7 @@ enum ErrorType {
 
 ### ESP32 Features
 - **Access Point**: Automatic WiFi hotspot
-- **HTTP Server**: Receives JSON data on port 80
+- **HTTP Server**: Receives data on port 80
 - **Batch management**: Handling of large data volumes
 - **Persistent logging**: LittleFS-based data storage
 - **Multi-task processing**: Parallel data processing
@@ -542,4 +552,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Team**: Chas Academy Team 9
 - **Repository**: [ChasAcademy-Team-9/Embedded](https://github.com/ChasAcademy-Team-9/Embedded)
 
-For questions or support, please create an issue in this repository.
+| 503  | Internal Server Error | ESP32 processing error - queue might be full |
