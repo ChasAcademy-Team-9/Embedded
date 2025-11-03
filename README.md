@@ -512,7 +512,6 @@ We welcome contributions to the Chas Advance IoT System! Please read our [CONTRI
 - **Testing**: Add unit tests for new functionality
 - **Documentation**: Update README and inline comments
 - **Commit Messages**: Use clear, descriptive commit messages
-- **Branch Naming**: Use `feature/`, `bugfix/`, or `hotfix/` prefixes
 
 ### Project Structure
 
@@ -525,7 +524,7 @@ See [PULL_REQUEST_TEMPLATE.md](PULL_REQUEST_TEMPLATE.md) for PR requirements.
 
 ## License
 
-This project is developed for **Chas Academy Team 9** as part of the SUVx24 course.
+This project is developed for **Chas Academy Team 9**.
 
 **Copyright © 2024 Chas Academy Team 9**
 
@@ -541,7 +540,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Maintainers
 
 - **Team**: Chas Academy Team 9
-- **Course**: SUVx24 - Embedded Systems
 - **Repository**: [ChasAcademy-Team-9/Embedded](https://github.com/ChasAcademy-Team-9/Embedded)
 
 For questions or support, please create an issue in this repository.
