@@ -30,7 +30,7 @@ void connectToESPAccessPointAsync()
         WiFi.begin(ssid, password);
         isWifiConnecting = true;
         wifiConnectStartMillis = millis();
-        Serial.println("Starting WiFi connection...");
+        Serial.println("\033[33mStarting WiFi connection...\033[0m");
     }
 
     if (isWifiConnecting)
@@ -38,19 +38,18 @@ void connectToESPAccessPointAsync()
         if (WiFi.status() == WL_CONNECTED)
         {
             isWifiConnecting = false;
-            Serial.println("\nArduino connected to ESP32 Access Point");
+            Serial.println("\n\033[32mArduino connected to ESP32 Access Point\033[0m");
         }
         else if (millis() - wifiConnectStartMillis > 10000)
         { // timeout 10s
             isWifiConnecting = false;
-            Serial.println("\nWiFi connection timed out");
+            Serial.println("\n\033[33mWiFi connection timed out");
         }
     }
     if (WiFi.status() == WL_CONNECTED && shouldGetEspTime)
     {
         if (!getTimeFromESP32())
         {
-            Serial.println("Failed to get time from ESP32");
             return;
         }
         Serial.print("Updated time from ESP32: ");
@@ -92,9 +91,9 @@ bool sendDataToESP32(std::vector<SensorData> &batch)
 
     if (!success && currentSendAttemptCount >= maxSendRetryCount)
     {
-        Serial.print("ERROR: Batch send failed after ");
+        Serial.print("\033[31mERROR: Batch send failed after ");
         Serial.print(maxSendRetryCount);
-        Serial.println(" attempts. Logging median");
+        Serial.println(" \033[31mattempts. Logging median\033[0m");
 
         SensorData data = calculateMedian(batch);
         data.errorType = ErrorType::WiFi_FAIL;
@@ -119,7 +118,7 @@ bool postToESP32(std::vector<SensorData> &batch)
 
     if (!client.connect(host, port))
     {
-        Serial.println("Connection to ESP32 failed when posting to ESP");
+        Serial.println("\033[31mConnection to ESP32 failed when posting to ESP\033[0m");
         return false;
     }
 
@@ -146,14 +145,14 @@ bool postToESP32(std::vector<SensorData> &batch)
             String line = client.readStringUntil('\n');
             if (line.startsWith("HTTP/1.1 200"))
             {
-                Serial.println("POST successful!");
+                Serial.println("\033[32mPOST successful!\033[0m");
                 client.stop();
                 return true;
             }
         }
     }
 
-    Serial.println("No valid response from ESP32");
+    Serial.println("\033[31mNo valid response from ESP32\033[0m");
     client.stop();
     return false;
 }
@@ -171,7 +170,7 @@ bool getTimeFromESP32()
     WiFiClient client;
     if (!client.connect(host, port))
     {
-        Serial.println("Conneciton to ESP failed when attempting to get time");
+        Serial.println("\033[31mConneciton to ESP failed when attempting to get time\033[0m");
         return false;
     }
 
@@ -206,11 +205,11 @@ bool getTimeFromESP32()
             // Optional sanity check
             if (epochTime == 0 || epochTime > 4102444800UL) // ~year 2100
             {
-                Serial.print("Invalid time received from ESP32: ");
+                Serial.print("\033[31mInvalid time received from ESP32: \033[0m");
                 Serial.println(epochTime);
                 return false;
             }
-            Serial.print("Got valid time from ESP: ");
+            Serial.print("\033[32mGot valid time from ESP: \033[0m");
             Serial.println(epochTime);
 
             shouldGetEspTime = false;
@@ -223,7 +222,7 @@ bool getTimeFromESP32()
     }
 
     client.stop();
-    Serial.println("No valid response");
+    Serial.println("\033[31mNo valid response from ESP32 when getting time\033[0m");
     return false;
 }
 

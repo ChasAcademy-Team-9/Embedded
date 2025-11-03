@@ -35,13 +35,13 @@ void logSensorData(String timestamp, float temperature, float humidity, ErrorTyp
         logEvent(timestamp, "INFO", buffer, "OK");
         break;
     case TOO_LOW:
-        logEvent(timestamp, "WARNING_Sensor data too low", buffer, "CHECK");
+        logEvent(timestamp, "\033[31mWARNING\033[0m Sensor data too low", buffer, "CHECK");
         break;
     case TOO_HIGH:
-        logEvent(timestamp, "WARNING_Sensor data too high", buffer, "CHECK");
+        logEvent(timestamp, "\033[31mWARNING\033[0m Sensor data too high", buffer, "CHECK");
         break;
     case SENSOR_FAIL:
-        logEvent(timestamp, "ERROR", "Sensor failure", "FAIL");
+        logEvent(timestamp, "\033[31mERROR\033[0m", "Sensor failure", "FAIL");
         break;
     default:
         logEvent(timestamp, "INFO", buffer, "UNKNOWN");
@@ -58,7 +58,7 @@ void logSensorData(String timestamp, float temperature, float humidity, ErrorTyp
 void logStartup()
 {
     String timeStamp = getTimeStamp();
-    logEvent(timeStamp, "SYSTEM", "RESET", "OK");
+    logEvent(timeStamp, "SYSTEM", "RESET", "\033[32mOK\033[0m");
 }
 
 /**
@@ -76,7 +76,7 @@ void checkDataTimeout(unsigned long &timeSinceDataReceived)
     if ((millis() - timeSinceDataReceived) > dataReceivedThreshold)
     {
         // Generate warning if no data received for the configured threshold
-        logEvent(getTimeStamp(), "ERROR", "No data received for " + String(dataReceivedThreshold / 1000) + " seconds", "FAIL");
+        logEvent(getTimeStamp(), "\033[31mERROR\033[0m", "No data received for " + String(dataReceivedThreshold / 1000) + " seconds", "FAIL");
         timeSinceDataReceived = millis(); // Reset timer
     }
 }
@@ -91,13 +91,13 @@ void checkDataTimeout(unsigned long &timeSinceDataReceived)
  */
 String getTimeStamp()
 {
-    String timeStamp = "TIME_ERROR";
+    String timeStamp = "\033[31mTIME_ERROR\033[0m";
 
     // Get current time
     struct tm timeinfo;
     if (!getLocalTime(&timeinfo))
     {
-        Serial.println("Failed to obtain time");
+        Serial.println("\033[31mFailed to obtain time\033[0m");
         return timeStamp;
     }
     else
@@ -143,7 +143,7 @@ uint32_t timestampStringToUnix(const String &tsStr)
                &timeinfo.tm_year, &timeinfo.tm_mon, &timeinfo.tm_mday,
                &timeinfo.tm_hour, &timeinfo.tm_min, &timeinfo.tm_sec) != 6)
     {
-        Serial.println("Failed to parse timestamp");
+        Serial.println("\033[31mFailed to parse timestamp\033[0m");
         return 0;
     }
 

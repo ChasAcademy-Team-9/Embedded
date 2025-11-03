@@ -13,7 +13,7 @@ void generateMockData(float &temp, float &hum, bool &error)
   else
   {
     error = false;
-    temp = random(220, 280) / 10.0; // 22.0–28.0 °C
+    temp = random(220, 252) / 10.0; // 22.0–25.2 °C
     hum = random(400, 600) / 10.0;  // 40.0–60.0 %
   }
 }

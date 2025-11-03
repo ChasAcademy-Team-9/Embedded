@@ -2,6 +2,7 @@
 #include "log.h"
 #include <queue>
 #include <mutex>
+#include <algorithm>
 #include "batchNetworkHandler.h"
 #include "espLogger.h"
 
@@ -20,9 +21,18 @@ extern ESPLogger logger;
 void handleParsedBatch(uint32_t sendMillis, std::vector<SensorData> &sensorBatch)
 {
   Serial.printf("Received batch with %zu entries\n", sensorBatch.size());
+  
+  //Remove entries with invalid timestamps
+  sensorBatch.erase(
+    std::remove_if(sensorBatch.begin(), sensorBatch.end(),
+      [](const SensorData& entry) { return entry.timestamp < 1609459200; }
+    ),
+    sensorBatch.end()
+  );
 
   for (const auto &entry : sensorBatch)
-  {
+  {  
+    Serial.print("    ");
     logSensorData(formatUnixTime(entry.timestamp),
                   entry.temperature,
                   entry.humidity,
@@ -31,7 +41,7 @@ void handleParsedBatch(uint32_t sendMillis, std::vector<SensorData> &sensorBatch
 
   if (!postBatchToServer(sensorBatch, -1))
   {
-    Serial.println("Failed to send batch to backend server - saving in flash");
+    Serial.println("\033[31mFailed to send batch to backend server - saving in flash\033[0m");
     logger.logBatch(sensorBatch);
 
     uint16_t batchIndex = 0;
@@ -42,7 +52,7 @@ void handleParsedBatch(uint32_t sendMillis, std::vector<SensorData> &sensorBatch
   }
   else
   {
-    Serial.println("Batch received from sensor was sent successfully to backend server");
+    Serial.println("\n\x1B[32mBatch received from sensor was sent successfully to backend server\x1B[0m");
   }
 }
 

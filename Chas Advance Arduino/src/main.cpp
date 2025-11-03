@@ -49,7 +49,7 @@ void loop()
   bool isWifiConnected = (WiFi.status() == WL_CONNECTED);
   if (isWifiConnected && !wasWifiConnected)
   {
-    Serial.println("WiFi reconnected! Checking for flash data to send...");
+    Serial.println("\n\033[32mWiFi reconnected! Checking for flash data to send...\033[0m");
     logger.sendFlashDataIfAvailable(sensorId);
   }
   wasWifiConnected = isWifiConnected;
