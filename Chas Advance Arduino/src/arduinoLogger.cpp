@@ -202,7 +202,7 @@ void Logger::createLogFromBatch(std::vector<SensorData> &batch, unsigned long no
     bool errorLogged = false;
     for (auto &entry : batch)
     {
-        if (entry.error)
+        if (entry.error && entry.errorType != SENSOR_FAIL) //We don't log sensor fail errors here
         {
             logDataEntry(entry);
             errorLogged = true;
@@ -273,13 +273,13 @@ bool Logger::sendFlashDataIfAvailable(uint8_t sensorId)
         bool sentSuccessfully = sendDataToESP32(flashBatch);
         if (sentSuccessfully)
         {
-            Serial.println("Flash data sent, clearing flash memory...");
+            Serial.println("\033[32mFlash data sent, clearing flash memory...\033[0m");
             clearAll();
             return true;
         }
         else
         {
-            Serial.println("Failed to send flash data to ESP32. Flash memory not cleared.");
+            Serial.println("\033[31mFailed to send flash data to ESP32. Flash memory not cleared.\033[0m");
             return false;
         }
     }

@@ -6,6 +6,15 @@ bool checkThresholds(SensorData &data, const Thresholds &thresholds)
 {
     bool exceeded = false;
 
+   // --- Check for unrealistic values ---
+    if (data.temperature <= -99.0 || data.temperature > 100.0 ||
+        data.humidity < 0.0 || data.humidity > 100.0)
+    {
+        data.error = true;
+        data.errorType = SENSOR_FAIL;
+        return true;
+    }
+
     if (data.temperature < thresholds.minTemperature || data.temperature > thresholds.maxTemperature)
     {
         exceeded = true;
@@ -27,7 +36,11 @@ SensorData measureSensorData(uint8_t sensorId, uint32_t timestamp, TemperatureMo
     float humidity = dht.readHumidity();
     bool error = false;
 
-    // generateMockData(temperature, humidity, error); //For testing without a physical sensor
+    bool mockData = false; // Set to true to use mock data for testing
+    if(mockData)
+    {
+        generateMockData(temperature, humidity, error); //For testing without a physical sensor
+    }
 
     SensorData data = {sensorId, timestamp, temperature, humidity, error, NONE};
     if (isnan(humidity) || isnan(temperature))
@@ -35,7 +48,7 @@ SensorData measureSensorData(uint8_t sensorId, uint32_t timestamp, TemperatureMo
         data.error = true;
         data.errorType = SENSOR_FAIL;
     }
-    if (!data.error)
+    if (!data.error || mockData)
     {
         checkThresholds(data, getThresholdsForMode(currentMode));
     }

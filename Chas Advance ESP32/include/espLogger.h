@@ -120,6 +120,8 @@ public:
     /** @brief Print the send-status log to Serial (human readable). */
     void printSendStatusLogs();
 
+    void clearSendStatusLogs();
+
     // -------- Batch file utilities --------
     /**
      * @brief Get batch filename for a given index.

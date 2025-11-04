@@ -3,6 +3,7 @@
 
 #include <DHT.h>
 #include "log.h"
+#include "mockSensor.h"
 #include "thresholds.h"
 
 #define DHTPIN 8

@@ -7,6 +7,8 @@
 #include "jsonParser.h"
 #include "batchProcessor.h"
 
+const uint32_t MIN_VALID_EPOCH = 1672531200; // Jan 1, 2023
+
 extern std::queue<IncomingBatch> batchQueue;
 extern std::mutex queueMutex;
 
@@ -112,7 +114,7 @@ void handleGetTimeRequest(WiFiClient &client)
     time(&now); // current UNIX time (UTC)
     uint32_t epoch = (uint32_t)now; // truncate to 32 bits
 
-    if (now == 0)
+    if (now == 0 || epoch < MIN_VALID_EPOCH)
     {
       Serial.println("Failed to get current time");
         client.println("HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n");
@@ -164,7 +166,7 @@ void trySendPendingBatches()
 
   if (postBatchToServer(batchEntries, batchIndex))
   {
-    Serial.println("Saved batch sent successfully, removing file");
+    Serial.println("\033[1;32mSaved batch sent successfully, removing file\033[0m");
     String fname = logger.getBatchFilename(batchIndex);
     LittleFS.remove(fname);
     retryInProgress = false;
@@ -174,7 +176,7 @@ void trySendPendingBatches()
 
   if (attempt >= 3)
   {
-    Serial.println("Sending saved batch failed after 3 retries, will retry later");
+    Serial.println("\033[38;5;202mSending saved batch failed after 3 retries, will retry later\033[0m");
     logger.logSendStatus(batchIndex, false, "3 retries failed");
     retryInProgress = false;
   }
@@ -210,10 +212,15 @@ bool postBatchToServer(const std::vector<SensorData> &batch, int batchId)
  */
 bool sendJsonToServer(const String &jsonString, int batchId)
 {
-  // return false; // For testing without server
-  if (WiFi.status() != WL_CONNECTED)
+  static int callCount = 2;
+  callCount++;
+  if(callCount % 2 == 0)
+   return false; // For testing without server
+  
+  
+   if (WiFi.status() != WL_CONNECTED)
   {
-    Serial.println("WiFi not connected - can't send batch to database!");
+    Serial.println("\033[31mWiFi not connected - can't send batch to database!\033[0m");
     logger.logSendStatus(batchId, false, "WiFi not connected");
     return false;
   }
@@ -229,8 +236,7 @@ bool sendJsonToServer(const String &jsonString, int batchId)
     String payload = http.getString(); // response from server
     if (httpResponseCode == 201)
     {
-      logger.logSendStatus(batchId, true, "OK");
-      Serial.println("Batch sent successfully!");
+      logger.logSendStatus(batchId, true, "Batch sent");
       http.end();
       return true;
     }

@@ -6,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ESP_HOST = "192.168.0.104"   # <-- your ESP32 STA IP
 ESP_PORT = 80
-N_SENSORS = 100              # total simulated sensors
-BATCH_SIZE = 10              # entries per batch
+N_SENSORS = 10             # total simulated sensors
+BATCH_SIZE = 2              # entries per batch
 MAX_DELAY = 3.0              # max random delay before sending (seconds)
 CONNECT_TIMEOUT = 3          # shorter connect timeout
 READ_TIMEOUT = 3             # read timeout
@@ -20,7 +20,6 @@ READ_TIMEOUT = 3             # read timeout
 # bool error (1 byte)
 # uint8_t errorType
 SENSORDATA_STRUCT = struct.Struct("<BIffBB")
-
 
 class SensorData:
     def __init__(self, sensor_id, timestamp, temperature, humidity, error=False, errorType=0):
@@ -46,7 +45,7 @@ def generate_batch(sensor_id):
     now = int(time.time())  # use seconds if your C++ uses epoch seconds
     return [
         SensorData(
-            sensor_id,
+            1,
             now + i,
             random.uniform(15, 30),
             random.uniform(30, 70)

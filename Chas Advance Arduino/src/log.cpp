@@ -23,23 +23,23 @@ void logSensorData(String timeStamp, float temperature, float humidity, ErrorTyp
         logEvent(timeStamp, "INFO", buffer, "OK");
         break;
     case TOO_LOW:
-        logEvent(timeStamp, "WARNING_Sensor data too low", buffer, "CHECK");
+        logEvent(timeStamp, "\033[31mWARNING\033[0m Sensor data too low", buffer, "CHECK");
         break;
     case TOO_HIGH:
-        logEvent(timeStamp, "WARNING_Sensor data too high", buffer, "CHECK");
+        logEvent(timeStamp, "\033[31mWARNING\033[0m Sensor data too high", buffer, "CHECK");
         break;
     case SENSOR_FAIL:
-        logEvent(timeStamp, "ERROR", "Sensor failure", "FAIL");
+        logEvent(timeStamp, "\033[31mERROR\033[0m", "Sensor failure", "FAIL");
         break;
     default:
-        logEvent(timeStamp, "ERROR", "Unknown error type", "FAIL");
+        logEvent(timeStamp, "\033[31mERROR\033[0m", "Unknown error type", "FAIL");
         break;
     }
 }
 
 void logStartup()
 {
-    logEvent("", "SYSTEM", "RESET", "OK"); // Pass empty timestamp since not available at startup
+    logEvent("", "SYSTEM", "RESET", "\033[32mOK\033[0m"); // Pass empty timestamp since not available at startup
 }
 
 String formatUnixTime(uint32_t ts)

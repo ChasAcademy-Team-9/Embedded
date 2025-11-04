@@ -21,12 +21,13 @@ void setup()
   // Initialize logger
   logger.begin();
   logStartup();
-  // logger.clearBatches(); // For testing, clear old batches
+  //logger.clearBatches(); // For testing, clear old batches
 
   // Print all previous log entries
   logger.printBatches();
   logger.printErrors();
   logger.printSendStatusLogs();
+  //logger.clearSendStatusLogs(); // For testing, clear old send status logs
 
   xTaskCreate(processBatches, "ProcessBatches", stackSize, NULL, 1, NULL);
 }

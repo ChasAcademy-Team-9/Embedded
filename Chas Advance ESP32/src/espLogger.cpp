@@ -17,11 +17,13 @@ void ESPLogger::begin()
 {
     if (!LittleFS.begin(true))
     {
-        Serial.println("LittleFS mount failed");
+        
+        Serial.println("\033[31mLittleFS mount failed\033[0m");
     }
     else
     {
-        Serial.println("LittleFS mounted successfully");
+        Serial.println();
+        Serial.println("\033[32mLittleFS mounted successfully\033[0m");
     }
 }
 
@@ -40,7 +42,7 @@ void ESPLogger::logError(const String &msg)
     File f = LittleFS.open(ERROR_FILE, FILE_APPEND);
     if (!f)
     {
-        Serial.println("Failed to open error log");
+        Serial.println("\033[31mFailed to open error log\033[0m");
         return;
     }
 
@@ -59,7 +61,7 @@ void ESPLogger::printErrors()
     File f = LittleFS.open(ERROR_FILE, FILE_READ);
     if (!f)
     {
-        Serial.println("No Error log found");
+        Serial.println("\033[38;5;202mNo Error log found/033[0m");
         return;
     }
     Serial.println("---- Error log start ----");
@@ -165,7 +167,7 @@ void ESPLogger::printBatches()
         // Read and validate batch file
         if (!readBatchFile(fname, entries))
         {
-            Serial.printf("Corrupt batch %s skipped\n", fname.c_str());
+            Serial.printf("\033[31mCorrupt batch %s skipped\n\033[0m", fname.c_str());
             continue;
         }
         Serial.printf("Batch file: %s\n", fname.c_str());
@@ -197,7 +199,7 @@ bool ESPLogger::getOldestBatch(std::vector<SensorData> &outEntries, uint16_t &ba
 
     if (!readBatchFile(fname, outEntries))
     {
-        Serial.printf("Batch %s is corrupted, removing file\n", fname.c_str());
+        Serial.printf("\033[31mBatch %s is corrupted, removing file\n\033[0m", fname.c_str());
         LittleFS.remove(fname);
         return false;
     }
@@ -225,7 +227,7 @@ bool ESPLogger::getNewestBatch(std::vector<SensorData> &outEntries, uint16_t &ba
 
     if (!readBatchFile(fileName, outEntries))
     {
-        Serial.printf("Batch %s is corrupted, removing file\n", fileName.c_str());
+        Serial.printf("\033[31mBatch %s is corrupted, removing file\n\033[0m", fileName.c_str());
         LittleFS.remove(fileName);
         return false;
     }
@@ -296,7 +298,7 @@ void ESPLogger::logSendStatus(int batchId, bool success, const String &message)
 
     File sendStatusLogFile = LittleFS.open(filename, FILE_APPEND);
     if (!sendStatusLogFile) {
-        Serial.println("Failed to open send status log");
+        Serial.println("\033[31mFailed to open send status log\033[0m");
         return;
     }
 
@@ -336,7 +338,7 @@ void ESPLogger::printSendStatusLogs()
         Serial.printf("Time:%s | Batch:%d | Status:%s | %s\n",
                       formatUnixTime(entry.timestamp).c_str(),
                       entry.batchId,
-                      entry.success ? "OK" : "FAIL",
+                      entry.success ? "\033[32mOK  \033[0m" : "\033[31mFAIL\033[0m",
                       entry.message);
     }
 
@@ -344,6 +346,11 @@ void ESPLogger::printSendStatusLogs()
     logFile.close();
 }
 
+void ESPLogger::clearSendStatusLogs()
+{
+    const char *filename = "/send_status.bin";
+    LittleFS.remove(filename);
+}
 
 // -------- Batch file utilities --------
 
