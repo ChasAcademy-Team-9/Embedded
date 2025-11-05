@@ -1,6 +1,11 @@
 #include "MockJson.h"
-#include <Arduino.h>
+#ifdef NATIVE_BUILD
+#include "Arduino.h" // Mock Arduino for native builds
+#else
+#include <Arduino.h> // Real Arduino for ESP32 builds
+#endif
 
+//DEPRECATED
 String generateMockJson()
 {
   char buf[32];

@@ -1,34 +1,23 @@
 #include <ArduinoJson.h>
 #include "jsonParser.h"
 
-void parseJson(String json)
-{
-    StaticJsonDocument<200> doc;
-    DeserializationError dError = deserializeJson(doc, json);
 
-    if (dError)
+String serializeBatchToJson(const std::vector<SensorData> &batch)
+{
+    // Use a sufficiently large static document; adjust size if your batches grow
+    StaticJsonDocument<2048> doc;
+    JsonArray dataArr = doc.to<JsonArray>();
+
+    for (const auto &entry : batch)
     {
-        Serial.print("JSON parse error: ");
-        Serial.println(dError.c_str());
-        delay(2000);
-        return;
+        JsonObject obj = dataArr.createNestedObject();
+        obj["ArduinoID"] = entry.SensorId; // Hardcoded for now
+        obj["SensorTimeStamp"] = formatUnixTime(entry.timestamp);
+        obj["Temperature"] = entry.temperature;
+        obj["Humidity"] = entry.humidity;
     }
 
-    String timestamp = doc["timestamp"] | "";
-    float temperature = doc["temperature"] | 0.0;
-    float humidity = doc["humidity"] | 0.0;
-    bool error = doc["error"] | false;
-
-    logSensorData(timestamp, temperature, humidity, error);
-}
-
-void parseJsonArray(JsonArray arr, const String &timestamp)
-{
-    for (JsonObject obj : arr)
-    {
-        obj["timestamp"] = timestamp;
-        String updatedBody;
-        serializeJson(obj, updatedBody);
-        parseJson(updatedBody);
-    }
+    String jsonString;
+    serializeJson(doc, jsonString); // serialize the array to string
+    return jsonString;
 }
